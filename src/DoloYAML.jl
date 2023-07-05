@@ -1,6 +1,5 @@
 module DoloYAML
 
-import ...NoLib
 using Printf
 
 import Dolang: SymExpr, list_syms
