@@ -3,21 +3,6 @@ uuid = "5444aaa2-d204-4231-b785-bc52d56d058b"
 authors = ["Winant Pablo <pablo.winant@gmail.com>"]
 version = "0.1.0"
 
-[compat]
-julia = "1.9"
-DataStructures = "0.18.14"
-Distributions = "0.25.98"
-Dolang = "3.3.0"
-Formatting = "0.4.2"
-HTTP = "1.9.8"
-IterTools = "1.8.0"
-MacroTools = "0.5.10"
-QuantEcon = "0.16.5"
-StaticArrays = "1.6.0"
-StringDistances = "0.11.2"
-YAML = "0.4.9"
-
-
 [deps]
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
@@ -31,4 +16,19 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 QuantEcon = "fcd29c91-0bd7-5a09-975d-7ac3f643a60c"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 StringDistances = "88034a9c-02f8-509d-84a9-84ec65e18404"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
+
+[compat]
+DataStructures = "0.18.14"
+Distributions = "0.25.98"
+Dolang = "3.3.0"
+Formatting = "0.4.2"
+HTTP = "1.9.8"
+IterTools = "1.8.0"
+MacroTools = "0.5.10"
+QuantEcon = "0.16.5"
+StaticArrays = "1.6.0"
+StringDistances = "0.11.2"
+YAML = "0.4.9"
+julia = "1.9"

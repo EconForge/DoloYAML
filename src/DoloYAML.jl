@@ -14,70 +14,25 @@ import YAML; using YAML: load_file, load
 
 import IterTools
 import HTTP
-# using StaticArrays
-# # solvers
-# using NLsolve
-# using Optim
 
-# QuantEcon
-# using QuantEcon; import QuantEcon: simulate
-# const QE = QuantEcon
 
 # Dolang
 using Dolang
 using Dolang: _to_expr, inf_to_Inf, solution_order, solve_triangular_system, _get_oorders
 import Dolang: Language, add_language_elements!, ToGreek
 
-# import LinearMaps: LinearMap
-
-# Numerical Tools
-# using ForwardDiff
 using MacroTools  # used for eval_with
 import Distributions
-# import BasisMatrices
-# const BM = BasisMatrices
 
-# Simulation/presentation
-# using AxisArrays
 using StringDistances
 
-# Compat across julia versions
-# using Compat; import Compat: String, view, @__dot__
 
-# using StaticArrays
-# using IterativeSolvers
-
-# Functions from base we extend
-# import Base.A_mul_B!
 import Base.size
 import Base.eltype
 import Base.*
 using Formatting
 using LinearAlgebra
 
-
-# # exports
-#        # model functions
-# export arbitrage, transition, auxiliary, value, expectation,
-#        direct_response, controls_lb, controls_ub, arbitrage_2, felicity,
-
-#        # mutating version of model functions
-#        arbitrage!, transition!, auxiliary!, value!, expectation!,
-#        direct_response, controls_lb!, controls_ub!, arbitrage_2!, felicity!,
-#        evaluate_definitions
-
-#        # dolo functions
-# export lint, yaml_import, eval_with, evaluate, evaluate!, model_type, name, filename, id, features, set_calibration!
-
-# export time_iteration, improved_time_iteration, value_iteration, residuals,
-#         response, simulate, perfect_foresight, time_iteration_direct, find_deterministic_equilibrium, perturb, tabulate
-
-# export ModelCalibration, FlatCalibration, GroupedCalibration
-# export AbstractModel, AbstractDecisionRule, Model
-
-# set up core typesr
-# abstract type AbstractSymbolicModel{ID} end
-# abstract type AbstractModel{ID} <: AbstractSymbolicModel{ID} end
 
 abstract type AbstractModel{ExoT} end
 
@@ -86,12 +41,6 @@ const AModel = AbstractModel
 
 Expression = Union{Expr, Symbol, Float64, Int64}
  
-# # conventions for list of points
-# Point{d} = SVector{d,Float64}
-# Value{n} = SVector{n,Float64}
-# ListOfPoints{d} = Vector{Point{d}}
-# ListOfValues{n} = Vector{Value{n}}
-
 
 # recursively make all keys at any layer of nesting a symbol
 # included here instead of util.jl so we can call it on RECIPES below
