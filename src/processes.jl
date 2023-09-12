@@ -25,6 +25,11 @@ function _rouwenhorst(p::Real, q::Real, m::Real, Δ::Real, n::Integer)
     end
 end
 
+# does kronecker product of matrices according to fortran order
+function fkron(A::AbstractMatrix, B::AbstractMatrix)
+    kron(B, A)
+end
+
 
 abstract type AbstractExogenous end
 
@@ -129,7 +134,7 @@ node(::Type{Point{d}}, dp::DiscreteMarkovProcess, i) where d = SVector{d}( dp.va
 
 
 function MarkovProduct(mc1::DiscreteMarkovProcess, mc2::DiscreteMarkovProcess)
-    Q = gridmake(mc1.values, mc2.values)
+    Q = QE.gridmake(mc1.values, mc2.values)
     P = fkron(mc1.transitions, mc2.transitions)
     return DiscreteMarkovProcess(P, Q)
 end
@@ -314,6 +319,7 @@ end
 discretize(var::VAR1; args...) = discretize(DiscreteMarkovProcess, var; args...)
 
 
+
 function discretize(::Type{DiscreteMarkovProcess}, var::VAR1; n::Union{Int, Vector{Int}}=3)
 
     # it would be good to have a special type of VAR1 process
@@ -331,7 +337,7 @@ function discretize(::Type{DiscreteMarkovProcess}, var::VAR1; n::Union{Int, Vect
     end
 
 
-    L = cholesky(σ) # σ = L'*L
+    ch = cholesky(σ) # σ = L'*L
     if n isa Int
         NN = fill(n, d) # default: same number of nodes in each dimension
     else
@@ -339,10 +345,17 @@ function discretize(::Type{DiscreteMarkovProcess}, var::VAR1; n::Union{Int, Vect
     end
 
     components = [rouwenhorst(N, ρ, 1.0) for N in NN]
-    mc_components = [DiscreteMarkovProcess(mc.P,Matrix(mc.V')) for mc in components]
-    mc_prod = MarkovProduct(mc_components...)
-    mc_prod.values = mc_prod.values*L'
-    return mc_prod
+    # return components
+    # return components
+    # mc_components = [DiscreteMarkovProcess(mc.P,Matrix(mc.V')) for mc in components]
+    # mc_prod = MarkovProduct(mc_components...)
+    P  = reduce(fkron, (c.P for c in components))
+    vals = [SVector(e...) for e in Iterators.product((c.V for c in components)...)][:]
+    values = SVector([SVector((ch.L*v)...) for v in vals]...)
+    println(P)
+    n = size(P,1)
+    mat = SMatrix{n,n,Float64,n*n}(P)
+    return Dolo.MarkovChain(mat,values)
 end
 
 

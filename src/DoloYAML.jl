@@ -1,5 +1,8 @@
 module DoloYAML
 
+
+    import NoLib
+    
 using Printf
 
 import Dolang: SymExpr, list_syms
@@ -33,6 +36,7 @@ import Base.*
 using Formatting
 using LinearAlgebra
 
+import NoLib: transition, arbitrage, controls_lb, controls_ub
 
 abstract type AbstractModel{ExoT} end
 
@@ -53,12 +57,12 @@ const pkg_path = dirname(src_path)
 const RECIPES = _symbol_dict(load_file(joinpath(src_path, "recipes.yaml")))
 
 # define these _functions_ so users can add their own _methods_ to extend them
-for f in [:arbitrage, :transition, :auxiliary, :value, :expectation,
-          :direct_response, :controls_lb, :controls_ub, :arbitrage_2,
-          :arbitrage!, :transition!, :auxiliary!, :value!, :expectation!,
-          :direct_response, :controls_lb!, :controls_ub!, :arbitrage_2!]
-    Core.eval(DoloYAML, Expr(:function, f))
-end
+# for f in [:arbitrage, :transition, :auxiliary, :value, :expectation,
+#           :direct_response, :controls_lb, :controls_ub, :arbitrage_2,
+#           :arbitrage!, :transition!, :auxiliary!, :value!, :expectation!,
+#           :direct_response, :controls_lb!, :controls_ub!, :arbitrage_2!]
+#     Core.eval(DoloYAML, Expr(:function, f))
+# end
 
 
 using StaticArrays
@@ -112,5 +116,7 @@ function arbitrage(model::AbstractModel{IIDExogenous}, s, x, E, S, X, p)
     return arbitrage(model, E, s, x, E, S, X, p)
 end
 
+
+include("domodel.jl")
 
 end # module DoloYAML
