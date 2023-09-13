@@ -1,17 +1,22 @@
 using StaticArrays
-    
+using Dolo: YModel    
 
 function DoloModel(filename::AbstractString)
-    source = yaml_import(filename)
+    source = yaml_import_old(filename)
     DoloModel(source)
 end
 
+yaml_import(filename::AbstractString) = DoloModel(filename)
+
+
 function DoloModel(source)
 
-    m = (; (v=>source.calibration.flat[v] for v in source.symbols[:exogenous])...) 
-    s = (; (v=>source.calibration.flat[v] for v in source.symbols[:states])...) 
-    x = (; (v=>source.calibration.flat[v] for v in source.symbols[:controls])...) 
-    p = (; (v=>source.calibration.flat[v] for v in source.symbols[:parameters])...) 
+    m = NamedTuple( v=>source.calibration.flat[v] for v in source.symbols[:exogenous] )
+    s = NamedTuple( v=>source.calibration.flat[v] for v in source.symbols[:states] ) 
+    x = NamedTuple( v=>source.calibration.flat[v] for v in source.symbols[:controls] )
+    p = NamedTuple( v=>source.calibration.flat[v] for v in source.symbols[:parameters] )
+
+    print(x)
 
     calibration = merge(m, s, x, p,)
 
@@ -27,19 +32,19 @@ function DoloModel(source)
         (;states, min, max) = source.domain.endo
 
         aargs = (states[i]=>(min[i],max[i]) for i in eachindex(states))
-        cspace = NoLib.CartesianSpace(; aargs... )
+        cspace = Dolo.CartesianSpace(; aargs... )
         exo_vars = tuple(source.symbols[:exogenous]...)
-        states = NoLib.GridSpace(exo_vars, points  ) × cspace
-        exogenous = NoLib.MarkovChain(exo_vars, P, points)
+        states = Dolo.GridSpace(exo_vars, points  ) × cspace
+        exogenous = Dolo.MarkovChain(exo_vars, P, points)
 
     elseif typeof(source.exogenous) <: MvNormal
 
         (;states, min, max) = source.domain.endo
         aargs = (states[i]=>(min[i],max[i]) for i in eachindex(states))
-        states = NoLib.CartesianSpace(; aargs... )
+        states = Dolo.CartesianSpace(; aargs... )
         exo_vars = tuple(source.symbols[:exogenous]...)
-        exogenous = NoLib.MvNormal(exo_vars, source.exogenous.μ, source.exogenous.Σ)
-        # exogenous = NoLib.MvNormal(source.exogenous.μ, source.exogenous.Σ) # TODO
+        exogenous = Dolo.MvNormal(exo_vars, source.exogenous.μ, source.exogenous.Σ)
+        # exogenous = Dolo.MvNormal(source.exogenous.μ, source.exogenous.Σ) # TODO
 
     elseif typeof(source.exogenous) <: VAR1
         
@@ -53,23 +58,22 @@ function DoloModel(source)
         (;states, min, max) = source.domain.endo
 
         aargs = (states[i]=>(min[i],max[i]) for i in eachindex(states))
-        cspace = NoLib.CartesianSpace(; aargs... )
+        cspace = Dolo.CartesianSpace(aargs... )
         exo_vars = tuple(source.symbols[:exogenous]...)
-        keys =  Dict(k=>(-Inf,Inf) for k in exo_vars )
-        exo_domain = NoLib.CartesianSpace(; keys... )
+        keys =  (k=>(-Inf,Inf) for k in exo_vars )
+        exo_domain = Dolo.CartesianSpace(keys... )
 
         min = tuple(exo_domain.min..., cspace.min...)
         max = tuple(exo_domain.max..., cspace.max...)
-        names = tuple(NoLib.variables(exo_domain)..., NoLib.variables(cspace)...)
-        states = NoLib.CartesianSpace{length(names), names}(min, max)
-        exogenous = NoLib.VAR1(exo_vars, ρ, SMatrix{p,p,Float64,p*p}(Σ))
-
+        names = tuple(Dolo.variables(exo_domain)..., Dolo.variables(cspace)...)
+        states = Dolo.CartesianSpace{length(names), names}(min, max)
+        exogenous = Dolo.VAR1(exo_vars, ρ, SMatrix{p,p,Float64,p*p}(Σ))
 
     end
 
-        controls = NoLib.CartesianSpace(;
-            Dict(k=>[-Inf, Inf] for k in source.symbols[:controls])...
-        )
+    controls = Dolo.CartesianSpace(
+        (k=>(-Inf, Inf) for k in source.symbols[:controls])...
+    )
 
     name = try
         Symbol(source.data[:name].value)
@@ -77,14 +81,14 @@ function DoloModel(source)
         :anonymous
     end
 
-    return NoLib.YModel(name, states, controls, exogenous, calibration, source)
+    return Dolo.YModel(name, states, controls, exogenous, calibration, source)
 
 end
 
 
-# function discretize(ym::NoLib.YModel{<:NoLib.MarkovChain,B,C,D,E}) where A where B where C where D where E<:Model
+# function discretize(ym::Dolo.YModel{<:Dolo.MarkovChain,B,C,D,E}) where A where B where C where D where E<:Model
 
-function recalibrate(ym::NoLib.YModel{A,B,C,D,E, F}; kwargs...) where A where B where C where D where E where F<:Model
+function recalibrate(ym::Dolo.YModel{A,B,C,D,E, F}; kwargs...) where A where B where C where D where E where F<:Model
     
     source = (ym.source)
 
@@ -95,11 +99,11 @@ function recalibrate(ym::NoLib.YModel{A,B,C,D,E, F}; kwargs...) where A where B 
     p = (; (v=>source.calibration.flat[v] for v in source.symbols[:parameters])...) 
     calibration = merge(m, s, x, p,)
 
-    NoLib.YModel(NoLib.name(ym), ym.states, ym.controls, ym.exogenous, calibration, source)
+    Dolo.YModel(Dolo.name(ym), ym.states, ym.controls, ym.exogenous, calibration, source)
     
 end
 
-function discretize(ym::NoLib.YModel{<:NoLib.MvNormal,B,C,D,E, F}; endo=nothing, exo=nothing) where B where C where D where E where F<:Model
+function discretize(ym::Dolo.YModel{<:Dolo.MvNormal,B,C,D,E, F}; endo=nothing, exo=nothing) where B where C where D where E where F<:Model
 
     options = DoloYAML.get_options(ym.source)
     discopts = get(options, :discretization, Dict())
@@ -117,13 +121,13 @@ function discretize(ym::NoLib.YModel{<:NoLib.MvNormal,B,C,D,E, F}; endo=nothing,
     dvar = discretize(ym.exogenous, exo_opts)
     grid = discretize(ym.states, endo_opts)
 
-    return NoLib.DYModel(ym, grid, dvar)
+    return Dolo.DYModel(ym, grid, dvar)
     
 end
 # only for VAR and MC
 
 
-function discretize(ym::NoLib.YModel{<:NoLib.MarkovChain,B,C,D,E, F}; endo=nothing, exo=nothing) where B where C where D where E where F<:Model
+function discretize(ym::Dolo.YModel{<:Dolo.MarkovChain,B,C,D,E, F}; endo=nothing, exo=nothing) where B where C where D where E where F<:Model
 
     options = DoloYAML.get_options(ym.source)
     discopts = get(options, :discretization, Dict())
@@ -142,12 +146,12 @@ function discretize(ym::NoLib.YModel{<:NoLib.MarkovChain,B,C,D,E, F}; endo=nothi
     exo_grid = SGrid(dvar.Q)
     endo_grid = discretize(ym.states.spaces[2], endo_opts)
     grid = exo_grid × endo_grid
-    return NoLib.DYModel(ym, grid, dvar)
+    return Dolo.DYModel(ym, grid, dvar)
     
 end
 
 
-function discretize(ym::NoLib.YModel{<:NoLib.VAR1,B,C,D,E, F}; endo=nothing, exo=nothing) where B where C where D where E where F<:Model
+function discretize(ym::Dolo.YModel{<:Dolo.VAR1,B,C,D,E, F}; endo=nothing, exo=nothing) where B where C where D where E where F<:Model
 
     options = get_options(ym.source)
     discopts = get(options, :discretization, Dict())
@@ -165,27 +169,26 @@ function discretize(ym::NoLib.YModel{<:NoLib.VAR1,B,C,D,E, F}; endo=nothing, exo
     dvar = discretize(ym.exogenous, exo_opts)
     exo_grid = SGrid(dvar.Q)
     
-    d = NoLib.ndims(exo_grid)
+    d = Dolo.ndims(exo_grid)
     min = ym.states.min[d+1:end]
     max = ym.states.max[d+1:end]
     endo_grid = discretize(
-        NoLib.CSpace(min, max),
+        Dolo.CSpace(min, max),
         endo_opts
     )
     grid = exo_grid × endo_grid
-    return NoLib.DYModel(ym, grid, dvar)
+    return Dolo.DYModel(ym, grid, dvar)
     
 end
 
 # only for VAR and MC
 
+function transition(model::Dolo.YModel{MOD,B,C,D,E,sS}, s::NamedTuple, x::NamedTuple, M::NamedTuple) where B where C where D where E where sS<:Model where MOD<:Union{<:Dolo.MarkovChain,<:Dolo.VAR1}
 
-function transition(model::NoLib.YModel{MOD,B,C,D,E,sS}, s::NamedTuple, x::NamedTuple, M::NamedTuple) where B where C where D where E where sS<:Model where MOD<:Union{<:NoLib.MarkovChain,<:NoLib.VAR1}
-
-    svars = (NoLib.variables(model.states))
-    exo = (NoLib.variables(model.exogenous))
+    svars = (Dolo.variables(model.states))
+    exo = (Dolo.variables(model.exogenous))
     endo = tuple( (v for v in svars if !(v in exo))...)
-    controls = NoLib.variables(model.controls)
+    controls = Dolo.variables(model.controls)
 
     mm = SVector( (s[i] for i in exo)... )
     ss = SVector( (s[i] for i in endo)... )
@@ -196,14 +199,14 @@ function transition(model::NoLib.YModel{MOD,B,C,D,E,sS}, s::NamedTuple, x::Named
     p = model.source.parameters
     S = transition(model.source, mm, ss, xx, MM, p)
 
-    return NamedTuple{endo}(S...)
+    return NamedTuple{endo}(S)
 
 end
 
-# function transition(model::NoLib.YModel{MOD,B,C,D,E,sS}, s::SVector, x::SVector, M::SVector) where B where C where D where E where sS<:Model where MOD<:Union{<:NoLib.MarkovChain,<:NoLib.VAR1}
+# function transition(model::Dolo.YModel{MOD,B,C,D,E,sS}, s::SVector, x::SVector, M::SVector) where B where C where D where E where sS<:Model where MOD<:Union{<:Dolo.MarkovChain,<:Dolo.VAR1}
 
-#     d = length(NoLib.variables(model.exogenous))
-#     n = length(NoLib.variables(model.states))
+#     d = length(Dolo.variables(model.exogenous))
+#     n = length(Dolo.variables(model.states))
 
 #     mm = SVector( (s[i] for i=1:d)... )
 #     ss = SVector( (s[i] for i=(d+1):n)... )
@@ -217,26 +220,26 @@ end
 
 # end
 
-function get_ms(model::NoLib.YModel{A,B,C,D,E,sS}, s::SVector) where A where B where C where D where E where sS<:Model
-    d = length(NoLib.variables(model.exogenous))
-    n = length(NoLib.variables(model.states))
+function get_ms(model::Dolo.YModel{A,B,C,D,E,sS}, s::SVector) where A where B where C where D where E where sS<:Model
+    d = length(Dolo.variables(model.exogenous))
+    n = length(Dolo.variables(model.states))
     m = SVector( (s[i] for i=1:d)... )
     s = SVector( (s[i] for i=(d+1):n)... )
     return (m,s)
 end
 
-function get_ms(model::NoLib.YModel{<:NoLib.MvNormal,B,C,D,E,sS}, s::SVector) where B where C where D where E where sS<:Model
-    d = length(NoLib.variables(model.exogenous))
-    n = length(NoLib.variables(model.states))
+function get_ms(model::Dolo.YModel{<:Dolo.MvNormal,B,C,D,E,sS}, s::SVector) where B where C where D where E where sS<:Model
+    d = length(Dolo.variables(model.exogenous))
+    n = length(Dolo.variables(model.states))
     m = SVector( (NaN64 for i=1:d)... )
     return (m,s)
 end
 
 
-function arbitrage(model::NoLib.YModel{A,B,C,D,E,sS}, s::SVector, x::SVector, S::SVector, X::SVector) where A where B where C where D where E where sS<:Model
+function arbitrage(model::Dolo.YModel{A,B,C,D,E,sS}, s::SVector, x::SVector, S::SVector, X::SVector) where A where B where C where D where E where sS<:Model
 
-    d = length(NoLib.variables(model.exogenous))
-    n = length(NoLib.variables(model.states))
+    d = length(Dolo.variables(model.exogenous))
+    n = length(Dolo.variables(model.states))
     mm,ss = get_ms(model, s)
     
     MM = SVector( (S[i] for i=1:d)...)
@@ -251,7 +254,7 @@ function arbitrage(model::NoLib.YModel{A,B,C,D,E,sS}, s::SVector, x::SVector, S:
 end
 
 
-function transition(model::NoLib.YModel{<:NoLib.MvNormal,B,C,D,E,sS}, s::SVector, x::SVector, M::SVector) where B where C where D where E where sS<:Model
+function transition(model::Dolo.YModel{<:Dolo.MvNormal,B,C,D,E,sS}, s::SVector, x::SVector, M::SVector) where B where C where D where E where sS<:Model
 
     p = model.source.parameters
     M_ = M # this argument is ignored
@@ -262,13 +265,13 @@ function transition(model::NoLib.YModel{<:NoLib.MvNormal,B,C,D,E,sS}, s::SVector
 end
 
 
-function arbitrage(model::NoLib.YModel{<:NoLib.MvNormal,B,C,D,E,sS}, s::SVector, x::SVector, S::SVector, X::SVector)  where B where C where D where E where sS<:Model
+function arbitrage(model::Dolo.YModel{<:Dolo.MvNormal,B,C,D,E,sS}, s::SVector, x::SVector, S::SVector, X::SVector)  where B where C where D where E where sS<:Model
 
     # TODO: currently we don't allow for iid shocks in Euler equations
     # TODO: warning
 
-    d = length(NoLib.variables(model.exogenous))
-    n = length(NoLib.variables(model.states))
+    d = length(Dolo.variables(model.exogenous))
+    n = length(Dolo.variables(model.states))
     m0 = zero(SVector{d,Float64})
 
     p = model.source.parameters
@@ -279,12 +282,12 @@ function arbitrage(model::NoLib.YModel{<:NoLib.MvNormal,B,C,D,E,sS}, s::SVector,
 
 end
 
-function bounds(model::NoLib.YModel{A, B, C, D, E, sS}, ss::NoLib.QP) where A where B where C where D where E where sS<:Model
+function bounds(model::Dolo.YModel{A, B, C, D, E, sS}, ss::Dolo.QP) where A where B where C where D where E where sS<:Model
     
     s = ss.val
 
-    d = length(NoLib.variables(model.exogenous))
-    n = length(NoLib.variables(model.states))
+    d = length(Dolo.variables(model.exogenous))
+    n = length(Dolo.variables(model.states))
 
     mm, ss_ = get_ms(model, ss.val)
 
@@ -299,7 +302,7 @@ function bounds(model::NoLib.YModel{A, B, C, D, E, sS}, ss::NoLib.QP) where A wh
 end
 
 
-function reward(model::NoLib.YModel{A, B, C, D, E, sS}, ss::NoLib.QP, x::SVector) where A where B where C where D where E where sS<:Model
+function reward(model::Dolo.YModel{A, B, C, D, E, sS}, ss::Dolo.QP, x::SVector) where A where B where C where D where E where sS<:Model
     
 
     mm, ss_ = get_ms(model, ss.val)
@@ -316,12 +319,12 @@ end
 
 
 
-function complementarities(model::NoLib.YModel{<:NoLib.MarkovChain, B, C, D, E, sS}, ss::NoLib.QP, x::SVector, Ef::SVector) where B where C where D where E where sS<:Model
+function complementarities(model::Dolo.YModel{<:Dolo.MarkovChain, B, C, D, E, sS}, ss::Dolo.QP, x::SVector, Ef::SVector) where B where C where D where E where sS<:Model
     
     s = ss.val
 
-    d = length(NoLib.variables(model.exogenous))
-    n = length(NoLib.variables(model.states))
+    d = length(Dolo.variables(model.exogenous))
+    n = length(Dolo.variables(model.states))
     
     mm = SVector( (s[i] for i=1:d)... )
     ss_ = SVector( (s[i] for i=(d+1):n)... )
@@ -336,12 +339,12 @@ function complementarities(model::NoLib.YModel{<:NoLib.MarkovChain, B, C, D, E, 
 end
 
 
-function complementarities(model::NoLib.YModel{<:NoLib.VAR1, B, C, D, E, sS}, ss::NoLib.QP, x::SVector, Ef::SVector) where B where C where D where E where sS<:Model
+function complementarities(model::Dolo.YModel{<:Dolo.VAR1, B, C, D, E, sS}, ss::Dolo.QP, x::SVector, Ef::SVector) where B where C where D where E where sS<:Model
     
     s = ss.val
 
-    d = length(NoLib.variables(model.exogenous))
-    n = length(NoLib.variables(model.states))
+    d = length(Dolo.variables(model.exogenous))
+    n = length(Dolo.variables(model.states))
 
     mm = SVector( (s[i] for i=1:d)... )
     ss_ = SVector( (s[i] for i=(d+1):n)... )
@@ -357,11 +360,11 @@ function complementarities(model::NoLib.YModel{<:NoLib.VAR1, B, C, D, E, sS}, ss
 end
 
 
-function complementarities(model::NoLib.YModel{<:NoLib.MvNormal, B, C, D, E, sS}, ss::NoLib.QP, x::SVector, Ef::SVector) where B where C where D where E where sS<:Model
+function complementarities(model::Dolo.YModel{<:Dolo.MvNormal, B, C, D, E, sS}, ss::Dolo.QP, x::SVector, Ef::SVector) where B where C where D where E where sS<:Model
     
 
-    d = length(NoLib.variables(model.exogenous))
-    n = length(NoLib.variables(model.states))
+    d = length(Dolo.variables(model.exogenous))
+    n = length(Dolo.variables(model.states))
     m0 = zero(SVector{d,Float64})
     
     s = ss.val

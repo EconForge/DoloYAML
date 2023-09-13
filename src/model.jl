@@ -145,7 +145,7 @@ end
 
 
 
-yaml_import(filename::AbstractString) = Model(filename)
+yaml_import_old(filename::AbstractString) = Model(filename)
 
 function Base.show(io::IO, model::Model)
     print(io, "Model")

@@ -1,8 +1,9 @@
 module DoloYAML
 
 
-    import NoLib
+    import Dolo
     
+
 using Printf
 
 import Dolang: SymExpr, list_syms
@@ -36,7 +37,7 @@ import Base.*
 using Formatting
 using LinearAlgebra
 
-import NoLib: transition, arbitrage, controls_lb, controls_ub
+import Dolo: transition, arbitrage, controls_lb, controls_ub
 
 abstract type AbstractModel{ExoT} end
 
