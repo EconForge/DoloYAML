@@ -16,8 +16,6 @@ function DoloModel(source)
     x = NamedTuple( v=>source.calibration.flat[v] for v in source.symbols[:controls] )
     p = NamedTuple( v=>source.calibration.flat[v] for v in source.symbols[:parameters] )
 
-    print(x)
-
     calibration = merge(m, s, x, p,)
 
     if typeof(source.exogenous) <: DiscreteMarkovProcess
@@ -187,7 +185,9 @@ function transition(model::Dolo.YModel{MOD,B,C,D,E,sS}, s::NamedTuple, x::NamedT
 
     svars = (Dolo.variables(model.states))
     exo = (Dolo.variables(model.exogenous))
-    endo = tuple( (v for v in svars if !(v in exo))...)
+    n_e = length(exo)
+    endo = svars[n_e+1:length(svars)]
+
     controls = Dolo.variables(model.controls)
 
     mm = SVector( (s[i] for i in exo)... )
@@ -223,24 +223,29 @@ end
 function get_ms(model::Dolo.YModel{A,B,C,D,E,sS}, s::SVector) where A where B where C where D where E where sS<:Model
     d = length(Dolo.variables(model.exogenous))
     n = length(Dolo.variables(model.states))
-    m = SVector( (s[i] for i=1:d)... )
-    s = SVector( (s[i] for i=(d+1):n)... )
-    return (m,s)
+    mm = SVector( (s[i] for i=1:d)...)
+    ss = SVector( (s[i] for i=(d+1):n)...)
+    return (mm, ss)
 end
 
-function get_ms(model::Dolo.YModel{<:Dolo.MvNormal,B,C,D,E,sS}, s::SVector) where B where C where D where E where sS<:Model
-    d = length(Dolo.variables(model.exogenous))
-    n = length(Dolo.variables(model.states))
-    m = SVector( (NaN64 for i=1:d)... )
-    return (m,s)
-end
+# function get_ms(model::Dolo.YModel{<:Dolo.MvNormal,B,C,D,E,sS}, s::SVector) where B where C where D where E where sS<:Model
+#     d = length(Dolo.variables(model.exogenous))
+#     n = length(Dolo.variables(model.states))
+#     m = SVector( (NaN64 for i=1:d)... )
+#     return (m,s)
+# end
 
 
 function arbitrage(model::Dolo.YModel{A,B,C,D,E,sS}, s::SVector, x::SVector, S::SVector, X::SVector) where A where B where C where D where E where sS<:Model
 
     d = length(Dolo.variables(model.exogenous))
     n = length(Dolo.variables(model.states))
+
+
+    
     mm,ss = get_ms(model, s)
+    # mm = SVector( (s[i] for i=1:d)...)
+    # ss = SVector( (s[i] for i=(d+1):n)...)
     
     MM = SVector( (S[i] for i=1:d)...)
     SS = SVector( (S[i] for i=(d+1):n)...)
