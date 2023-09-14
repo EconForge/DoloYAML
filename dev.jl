@@ -7,7 +7,7 @@ dmodel = Dolo.discretize(model)
 @time Dolo.time_iteration(model)
 @time Dolo.time_iteration(model, improve=true)
 
-@time Dolo.time_iteration(model; engine=:cpu)
+
 
 using StaticArrays
 # Dolo.time_iteration(model; improve=true)
@@ -24,6 +24,35 @@ x0 = Dolo.calibrated(model, :controls)
 ϕ0  = Dolo.Policy(model.states, model.controls, u->x0)
 
 Dolo.F(dmodel, ss0, x0, ϕ0)
+
+xvec = Dolo.GVector(dmodel.grid, [x0 for i=1:length(dmodel.grid)])
+φ1 = Dolo.DFun(model, xvec)
+
+res = Dolo.F(dmodel, xvec, φ1);
+dres = Dolo.dF_1(dmodel, xvec, φ1);
+
+import Dolo: CPU
+
+res1 = res*0.0
+@time begin res1 = res*0.0;(Dolo.F!(res1, dmodel, xvec, φ1);println(sum(sum(res1)))) end
+@time begin res2 = res*0.0;Dolo.F!(res2, dmodel, xvec, φ1, CPU());println(sum(sum(res2))) end
+
+
+function test(dmodel,ss0, x0, ϕ0)
+    return sum(Dolo.dF_1(dmodel,ss0, x0, ϕ0))
+end
+test(dmodel,ss0, x0, ϕ0)
+
+@time Dolo.dF_1!(dres1, dmodel, xvec, φ1);
+
+@time begin dres1 = dres*0.0;(Dolo.dF_1!(dres1, dmodel, xvec, φ1);println(sum(sum(dres1)))) end
+@time begin dres2 = dres*0.0;Dolo.dF_1!(dres2, dmodel, xvec, φ1, CPU());println(sum(sum(dres2))) end
+
+@time Dolo.time_iteration(model;)
+
+@time Dolo.time_iteration(model; engine=:cpu)
+
+
 
 # x0 = Dolo.GVector(dmodel.grid, [x0 for i=1:length(dmodel.grid)])
 (;φ) = Dolo.time_iteration_workspace(dmodel; )

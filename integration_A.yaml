@@ -126,3 +126,6 @@ domain:
     k_1: [kmin, kmax]
     k_2: [kmin, kmax]
 
+options:
+    discretization:
+        endo: [50,50]
