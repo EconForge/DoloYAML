@@ -41,7 +41,8 @@ res1 = res*0.0
 function test(dmodel,ss0, x0, ϕ0)
     return sum(Dolo.dF_1(dmodel,ss0, x0, ϕ0))
 end
-test(dmodel,ss0, x0, ϕ0)
+
+@time test(dmodel,ss0, x0, φ1)
 
 @time Dolo.dF_1!(dres1, dmodel, xvec, φ1);
 
