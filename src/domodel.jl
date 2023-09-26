@@ -84,9 +84,9 @@ function DoloModel(source)
 end
 
 
-# function discretize(ym::Dolo.YModel{<:Dolo.MarkovChain,B,C,D,E}) where A where B where C where D where E<:Model
+# function discretize(ym::Dolo.YModel{<:Dolo.MarkovChain,B,C,D,E}) where A where B where C where D where E<:AbstractModel
 
-function recalibrate(ym::Dolo.YModel{A,B,C,D,E, F}; kwargs...) where A where B where C where D where E where F<:Model
+function recalibrate(ym::Dolo.YModel{A,B,C,D,E, F}; kwargs...) where A where B where C where D where E where F<:AbstractModel
     
     source = (ym.source)
 
@@ -101,7 +101,7 @@ function recalibrate(ym::Dolo.YModel{A,B,C,D,E, F}; kwargs...) where A where B w
     
 end
 
-function discretize(ym::Dolo.YModel{<:Dolo.MvNormal,B,C,D,E, F}; endo=nothing, exo=nothing) where B where C where D where E where F<:Model
+function discretize(ym::Dolo.YModel{<:Dolo.MvNormal,B,C,D,E, F}; endo=nothing, exo=nothing) where B where C where D where E where F<:AbstractModel
 
     options = DoloYAML.get_options(ym.source)
     discopts = get(options, :discretization, Dict())
@@ -125,7 +125,7 @@ end
 # only for VAR and MC
 
 
-function discretize(ym::Dolo.YModel{<:Dolo.MarkovChain,B,C,D,E, F}; endo=nothing, exo=nothing) where B where C where D where E where F<:Model
+function discretize(ym::Dolo.YModel{<:Dolo.MarkovChain,B,C,D,E, F}; endo=nothing, exo=nothing) where B where C where D where E where F<:AbstractModel
 
     options = DoloYAML.get_options(ym.source)
     discopts = get(options, :discretization, Dict())
@@ -149,7 +149,7 @@ function discretize(ym::Dolo.YModel{<:Dolo.MarkovChain,B,C,D,E, F}; endo=nothing
 end
 
 
-function discretize(ym::Dolo.YModel{<:Dolo.VAR1,B,C,D,E, F}; endo=nothing, exo=nothing) where B where C where D where E where F<:Model
+function discretize(ym::Dolo.YModel{<:Dolo.VAR1,B,C,D,E, F}; endo=nothing, exo=nothing) where B where C where D where E where F<:AbstractModel
 
     options = get_options(ym.source)
     discopts = get(options, :discretization, Dict())
@@ -181,7 +181,7 @@ end
 
 # only for VAR and MC
 
-function transition(model::Dolo.YModel{MOD,B,C,D,E,sS}, s::NamedTuple, x::NamedTuple, M::NamedTuple) where B where C where D where E where sS<:Model where MOD<:Union{<:Dolo.MarkovChain,<:Dolo.VAR1}
+function transition(model::Dolo.YModel{MOD,B,C,D,E,sS}, s::NamedTuple, x::NamedTuple, M::NamedTuple) where B where C where D where E where sS<:AbstractModel where MOD<:Union{<:Dolo.MarkovChain,<:Dolo.VAR1}
 
     svars = (Dolo.variables(model.states))
     exo = (Dolo.variables(model.exogenous))
@@ -203,7 +203,7 @@ function transition(model::Dolo.YModel{MOD,B,C,D,E,sS}, s::NamedTuple, x::NamedT
 
 end
 
-# function transition(model::Dolo.YModel{MOD,B,C,D,E,sS}, s::SVector, x::SVector, M::SVector) where B where C where D where E where sS<:Model where MOD<:Union{<:Dolo.MarkovChain,<:Dolo.VAR1}
+# function transition(model::Dolo.YModel{MOD,B,C,D,E,sS}, s::SVector, x::SVector, M::SVector) where B where C where D where E where sS<:AbstractModel where MOD<:Union{<:Dolo.MarkovChain,<:Dolo.VAR1}
 
 #     d = length(Dolo.variables(model.exogenous))
 #     n = length(Dolo.variables(model.states))
@@ -220,7 +220,7 @@ end
 
 # end
 
-function get_ms(model::Dolo.YModel{A,B,C,D,E,sS}, s::SVector) where A where B where C where D where E where sS<:Model
+function get_ms(model::Dolo.YModel{A,B,C,D,E,sS}, s::SVector) where A where B where C where D where E where sS<:AbstractModel
     d = length(Dolo.variables(model.exogenous))
     n = length(Dolo.variables(model.states))
     mm = SVector( (s[i] for i=1:d)...)
@@ -228,7 +228,7 @@ function get_ms(model::Dolo.YModel{A,B,C,D,E,sS}, s::SVector) where A where B wh
     return (mm, ss)
 end
 
-# function get_ms(model::Dolo.YModel{<:Dolo.MvNormal,B,C,D,E,sS}, s::SVector) where B where C where D where E where sS<:Model
+# function get_ms(model::Dolo.YModel{<:Dolo.MvNormal,B,C,D,E,sS}, s::SVector) where B where C where D where E where sS<:AbstractModel
 #     d = length(Dolo.variables(model.exogenous))
 #     n = length(Dolo.variables(model.states))
 #     m = SVector( (NaN64 for i=1:d)... )
@@ -236,7 +236,7 @@ end
 # end
 
 
-function arbitrage(model::Dolo.YModel{A,B,C,D,E,sS}, s::SVector, x::SVector, S::SVector, X::SVector) where A where B where C where D where E where sS<:Model
+function arbitrage(model::Dolo.YModel{A,B,C,D,E,sS}, s::SVector, x::SVector, S::SVector, X::SVector) where A where B where C where D where E where sS<:AbstractModel
 
     d = length(Dolo.variables(model.exogenous))
     n = length(Dolo.variables(model.states))
@@ -259,7 +259,7 @@ function arbitrage(model::Dolo.YModel{A,B,C,D,E,sS}, s::SVector, x::SVector, S::
 end
 
 
-function transition(model::Dolo.YModel{<:Dolo.MvNormal,B,C,D,E,sS}, s::SVector, x::SVector, M::SVector) where B where C where D where E where sS<:Model
+function transition(model::Dolo.YModel{<:Dolo.MvNormal,B,C,D,E,sS}, s::SVector, x::SVector, M::SVector) where B where C where D where E where sS<:AbstractModel
 
     p = model.source.parameters
     M_ = M # this argument is ignored
@@ -270,7 +270,7 @@ function transition(model::Dolo.YModel{<:Dolo.MvNormal,B,C,D,E,sS}, s::SVector, 
 end
 
 
-function arbitrage(model::Dolo.YModel{<:Dolo.MvNormal,B,C,D,E,sS}, s::SVector, x::SVector, S::SVector, X::SVector)  where B where C where D where E where sS<:Model
+function arbitrage(model::Dolo.YModel{<:Dolo.MvNormal,B,C,D,E,sS}, s::SVector, x::SVector, S::SVector, X::SVector)  where B where C where D where E where sS<:AbstractModel
 
     # TODO: currently we don't allow for iid shocks in Euler equations
     # TODO: warning
@@ -287,7 +287,7 @@ function arbitrage(model::Dolo.YModel{<:Dolo.MvNormal,B,C,D,E,sS}, s::SVector, x
 
 end
 
-function bounds(model::Dolo.YModel{A, B, C, D, E, sS}, ss::Dolo.QP) where A where B where C where D where E where sS<:Model
+function bounds(model::Dolo.YModel{A, B, C, D, E, sS}, ss::Dolo.QP) where A where B where C where D where E where sS<:AbstractModel
     
     s = ss.val
 
@@ -307,7 +307,7 @@ function bounds(model::Dolo.YModel{A, B, C, D, E, sS}, ss::Dolo.QP) where A wher
 end
 
 
-function reward(model::Dolo.YModel{A, B, C, D, E, sS}, ss::Dolo.QP, x::SVector) where A where B where C where D where E where sS<:Model
+function reward(model::Dolo.YModel{A, B, C, D, E, sS}, ss::Dolo.QP, x::SVector) where A where B where C where D where E where sS<:AbstractModel
     
 
     mm, ss_ = get_ms(model, ss.val)
@@ -324,7 +324,7 @@ end
 
 
 
-function complementarities(model::Dolo.YModel{<:Dolo.MarkovChain, B, C, D, E, sS}, ss::Dolo.QP, x::SVector, Ef::SVector) where B where C where D where E where sS<:Model
+function complementarities(model::Dolo.YModel{<:Dolo.MarkovChain, B, C, D, E, sS}, ss::Dolo.QP, x::SVector, Ef::SVector) where B where C where D where E where sS<:AbstractModel
     
     s = ss.val
 
@@ -344,7 +344,7 @@ function complementarities(model::Dolo.YModel{<:Dolo.MarkovChain, B, C, D, E, sS
 end
 
 
-function complementarities(model::Dolo.YModel{<:Dolo.VAR1, B, C, D, E, sS}, ss::Dolo.QP, x::SVector, Ef::SVector) where B where C where D where E where sS<:Model
+function complementarities(model::Dolo.YModel{<:Dolo.VAR1, B, C, D, E, sS}, ss::Dolo.QP, x::SVector, Ef::SVector) where B where C where D where E where sS<:AbstractModel
     
     s = ss.val
 
@@ -365,7 +365,7 @@ function complementarities(model::Dolo.YModel{<:Dolo.VAR1, B, C, D, E, sS}, ss::
 end
 
 
-function complementarities(model::Dolo.YModel{<:Dolo.MvNormal, B, C, D, E, sS}, ss::Dolo.QP, x::SVector, Ef::SVector) where B where C where D where E where sS<:Model
+function complementarities(model::Dolo.YModel{<:Dolo.MvNormal, B, C, D, E, sS}, ss::Dolo.QP, x::SVector, Ef::SVector) where B where C where D where E where sS<:AbstractModel
     
 
     d = length(Dolo.variables(model.exogenous))

@@ -39,7 +39,7 @@ using LinearAlgebra
 
 import Dolo: transition, arbitrage, controls_lb, controls_ub
 
-abstract type AbstractModel{ExoT} end
+abstract type AbstractModel{ID, ExoT} end
 
 const AModel = AbstractModel
 
@@ -109,11 +109,11 @@ add_language_elements!(minilang, Dict(
 
 # shortcuts for IID models
 
-function transition(model::AbstractModel{IIDExogenous}, s, x, e, p)
+function transition(model::AbstractModel{ID, IIDExogenous}, s, x, e, p) where ID
     return transition(model, e,s,x,e,p)
 end
 
-function arbitrage(model::AbstractModel{IIDExogenous}, s, x, E, S, X, p)
+function arbitrage(model::AbstractModel{ID, IIDExogenous}, s, x, E, S, X, p) where ID
     return arbitrage(model, E, s, x, E, S, X, p)
 end
 

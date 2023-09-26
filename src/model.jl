@@ -19,7 +19,7 @@ using DataStructures: OrderedDict
 # defind language understood in yaml files
 language = minilang
 
-mutable struct Model{ID, Dom, P} <: AbstractModel{Dom}
+mutable struct Model{ID, Dom, P} <: AbstractModel{ID, Dom}
 
     data::YAML.MappingNode
     symbols::Dict{Symbol, Vector{Symbol}}
@@ -31,10 +31,13 @@ mutable struct Model{ID, Dom, P} <: AbstractModel{Dom}
     definitions
     filename::String
 
-
 end
 
-id(model::Model{ID, Dom}) where ID where  Dom = ID
+struct DummyModel{ID, Dom, P} <: AbstractModel{ID, Dom}
+    parameters::P
+end
+
+id(model::AbstractModel{ID, Dom}) where ID where  Dom = ID
 
 function check_exogenous_domain_type(data)
     if !("exogenous" in keys(data))
@@ -117,7 +120,7 @@ function create_factories!(model::AModel{id}) where id
     factories = get_factories(model)
         
     for (k,fact) in factories
-        code = Dolang.gen_generated_gufun(fact; dispatch=typeof(model))
+        code = Dolang.gen_generated_gufun(fact; dispatch=supertype(typeof(model)))
         # print_code && println("equation '", eq_type, "'", code)
         Core.eval(DoloYAML, code)
     end
