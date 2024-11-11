@@ -14,9 +14,9 @@ using DataStructures: OrderedDict
 using LinearAlgebra
 import QuantEcon
 const QE = QuantEcon
+
 import YAML; using YAML: load_file, load
 
-import IterTools
 import HTTP
 
 
@@ -34,7 +34,7 @@ using StringDistances
 import Base.size
 import Base.eltype
 import Base.*
-using Formatting
+using Format
 using LinearAlgebra
 
 import Dolo: transition, arbitrage, controls_lb, controls_ub

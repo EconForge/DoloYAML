@@ -64,7 +64,7 @@ function DoloModel(source)
         min = tuple(exo_domain.min..., cspace.min...)
         max = tuple(exo_domain.max..., cspace.max...)
         names = tuple(Dolo.variables(exo_domain)..., Dolo.variables(cspace)...)
-        states = Dolo.CartesianSpace{length(names), names}(min, max)
+        states = Dolo.CartesianSpace(; ( n=>(a,b) for (n,a,b) in zip(names, min, max))... )
         exogenous = Dolo.VAR1(exo_vars, ρ, SMatrix{p,p,Float64,p*p}(Σ))
 
     end
