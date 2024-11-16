@@ -1,11 +1,59 @@
-import DoloYAML
 import Dolo
+import DoloYAML
+import Dolo: getprecision
 
-model = DoloYAML.yaml_import("integration_A.yaml")
+# model_source = DoloYAML.ModelSource("examples/integration_A.yaml")
+
+model_ = DoloYAML.yaml_import("examples/integration_A.yaml")
+
+using StaticArrays: SVector
+
+s = SVector((Dolo.calibrated(model_, :states)[3:4])...)
+x = Dolo.calibrated(model_, :controls)
+m = Dolo.calibrated(model_, :exogenous)
+ss = SVector(m..., s...)
+
+
+# p = Dolo.calibrated(model_, :parameters)
+
+# @time Dolo.arbitrage(model_, m,s,x,m,s,x,p)
+# @time Dolo.transition(model_, m,s,x,m,p)
+# @time Dolo.arbitrage(model_, m,s,x,m,s,x)
+# @time Dolo.transition(model_, m,s,x,m)
+
+
+
+@time Dolo.transition(model_, ss,x,m)
+@time Dolo.arbitrage(model_, ss,x,ss,x)
+
+dmodel_ = Dolo.discretize(model_)
+wk_ = Dolo.time_iteration_workspace(dmodel_)
+@time Dolo.F!(wk_.r0, dmodel_, wk_.x0, wk_.φ)
+
+Dolo.time_iteration(dmodel)
+
+
+
+#### 
+model = Dolo.convert_precision(Float32, model_)
+
 dmodel = Dolo.discretize(model)
 
-@time Dolo.time_iteration(model)
-@time Dolo.time_iteration(model, improve=true)
+
+s = dmodel.grid[1+im]
+x0 = Dolo.calibrated(model, :controls)
+[Dolo.τ(dmodel, s, x0)...]
+
+
+
+
+
+wk = Dolo.time_iteration_workspace(dmodel);
+@time Dolo.F!(wk.r0, dmodel, wk.x0, wk.φ);
+
+
+@time Dolo.time_iteration(dmodel, wk)
+# @time Dolo.time_iteration(model, improve=true)
 
 
 

@@ -19,7 +19,7 @@ using DataStructures: OrderedDict
 # defind language understood in yaml files
 language = minilang
 
-mutable struct Model{ID, Dom, P} <: AbstractModel{ID, Dom}
+mutable struct ModelSource{ID, Dom, P} <: AbstractModel{Dom}
 
     data::YAML.MappingNode
     symbols::Dict{Symbol, Vector{Symbol}}
@@ -33,11 +33,11 @@ mutable struct Model{ID, Dom, P} <: AbstractModel{ID, Dom}
 
 end
 
-struct DummyModel{ID, Dom, P} <: AbstractModel{ID, Dom}
+struct DummyModel{ID, Dom, P} <: AbstractModel{Dom}
     parameters::P
 end
 
-id(model::AbstractModel{ID, Dom}) where ID where  Dom = ID
+id(model::ModelSource{ID, Dom}) where ID where  Dom = ID
 
 function check_exogenous_domain_type(data)
     if !("exogenous" in keys(data))
@@ -60,7 +60,7 @@ function check_exogenous_domain_type(data)
 end
 
 
-function Model(url::AbstractString; print_code=false)
+function ModelSource(url::AbstractString; print_code=false)
     
     fname = basename(url)
 
@@ -75,14 +75,14 @@ function Model(url::AbstractString; print_code=false)
     data = Dolang.yaml_node_from_string(txt)
     # domain = det_domain(data, states, calib)
     # fspace = ProductDomain(typ, typeof())
-    return Model(data, fname)
+    return ModelSource(data, fname)
 
 end
 
 
-function Model(data::YAML.Node, filename)
+function ModelSource(data::YAML.Node, filename)
 
-    id = gensym()
+    idt = gensym()
 
     calibration = get_calibration(data)
     symbols = get_symbols(data)
@@ -97,7 +97,7 @@ function Model(data::YAML.Node, filename)
 
     p = SVector(calibration[:parameters]...)
 
-    model = Model{id, dom_typ, typeof(p)}(
+    model = ModelSource{idt, dom_typ, typeof(p)}(
         data,
         symbols,
         calibration,
@@ -115,12 +115,21 @@ function Model(data::YAML.Node, filename)
 
 end
 
-function create_factories!(model::AModel{id}) where id
+function create_factories!(model)
 
     factories = get_factories(model)
+    idt = id(model)
+
+    println(idt)
         
+    model_type = Dolo.YModel{idt}
+    println("Model type: ",model_type)
+
     for (k,fact) in factories
-        code = Dolang.gen_generated_gufun(fact; dispatch=supertype(typeof(model)))
+        # code = Dolang.gen_generated_gufun(fact; dispatch=typeof(model))
+        # code = Dolang.gen_generated_gufun(fact; dispatch=model_type)
+        code = Dolang.gen_kernel2(fact, 0; dispatch=model_type)
+        println(code)
         # print_code && println("equation '", eq_type, "'", code)
         Core.eval(DoloYAML, code)
     end
@@ -138,8 +147,56 @@ function create_factories!(model::AModel{id}) where id
     )
     ff = Dolang.FunctionFactory(definitions, args, OrderedDict{Symbol, SymExpr}(), :definitions)
 
-    code = Dolang.gen_generated_gufun(ff;dispatch=typeof(model), funname=:evaluate_definitions)
+    # code = Dolang.gen_generated_gufun(ff;dispatch=model_type, funname=:evaluate_definitions)
+    code = Dolang.gen_kernel2(ff, 0; dispatch=model_type, funname=:evaluate_definitions)
     Core.eval(DoloYAML,code)
+
+    
+    # code = quote
+    #     # WARNING: this works only because model calibration is ordered with parameters first
+    #     # transition(model::$model_type, s::SVector, x::SVector, M::SVector) = transition(model, s, x, M, SVector(model.calibration...))
+    #     # arbitrage(model::$model_type, s::SVector, x::SVector, S::SVector, X::SVector) = arbitrage(model, s, x, S, X,  SVector(model.calibration...))
+
+    #     transition(model::$model_type, m::SVector, s::SVector, x::SVector, M::SVector) = transition(model, m, s, x, M, SVector((model.calibration[k] for k=1:$n_p)...))
+    #     arbitrage(model::$model_type, m::SVector, s::SVector, x::SVector, M::SVector, S::SVector, X::SVector) = arbitrage(model, m, s, x, M, S, X, SVector((model.calibration[k] for k=1:$n_p)...))
+    # end
+    # Core.eval(DoloYAML, code)
+
+    # add compatibility
+
+
+
+    if model.exogenous isa VAR1
+        println("Specializing VAR1")
+        n_p = length(model.symbols[:parameters])
+        n_x = length(model.symbols[:controls])
+        n_s = length(model.symbols[:states]) + length(model.symbols[:exogenous])
+        n_e = length(model.symbols[:exogenous])
+        code = quote
+            # function transition(model::$model_type, s::SVector, x::SVector, E::SVector) 
+            #     m_,s_ = get_ms(model,s)
+            #     transition(model, m_, s_, x, E)
+            # end       
+            # function transition(model::$model_type, s::SVector{$n_s,T}, x::SVector{$n_x,T}, E::SVector{$n_x,T}) where T
+            function transition(model::$model_type, s::SVector{$n_s}, x::SVector{$n_x}, E::SVector{$n_e})
+                m_,s_ = get_ms(model,s)
+                p = SVector((model.calibration[k] for k=1:$n_p)...)
+                transition(model, m_, s_, x, E, p)
+            end
+
+            function arbitrage(model::$model_type, s::SVector{$n_s}, x::SVector{$n_x}, S::SVector{$n_s}, X::SVector{$n_x})
+                m_,s_ = get_ms(model,s)
+                M_,S_ = get_ms(model,S)
+                p = SVector((model.calibration[k] for k=1:$n_p)...)
+                arbitrage(model, m_, s_, x, M_, S_, X, p)
+            end
+        end
+        println(code)
+        Core.eval(DoloYAML, code)
+
+    end
+    
+
     factories[:definitions] = ff
 
     model.factories = factories
@@ -148,13 +205,13 @@ end
 
 
 
-yaml_import_old(filename::AbstractString) = Model(filename)
+yaml_import_old(filename::AbstractString) = ModelSource(filename)
 
-function Base.show(io::IO, model::Model)
+function Base.show(io::IO, model::ModelSource)
     print(io, "Model")
 end
 
-function get_symbols(model::Model)
+function get_symbols(model::ModelSource)
     return get_symbols(model.data)
 end
 
@@ -167,7 +224,7 @@ function get_symbols(data)
     return symbols
 end
 
-function get_variables(model::Model)
+function get_variables(model::ModelSource)
     return get_variables(model.data)
 end
 
@@ -178,7 +235,7 @@ function get_variables(data)
     dynvars = union( dynvars, get_defined_variables(data) )
 end
 
-function get_defined_variables(model::Model)
+function get_defined_variables(model::ModelSource)
     return get_defined_variables(model.data)
 end
 
@@ -198,7 +255,7 @@ function get_defined_variables(data)
     end
 end
 
-function get_name(model::Model)
+function get_name(model::ModelSource)
     if "name" in keys(model.data)
         name = model.data[:name].value
     else
@@ -247,7 +304,7 @@ function get_exogenous(data, exosyms, fcalib)
 end
 
 
-function get_calibration(model::Model; kwargs...)
+function get_calibration(model::ModelSource; kwargs...)
 
     return get_calibration(model.data; kwargs...)
 end
@@ -271,7 +328,7 @@ function get_calibration(data; kwargs...)
     return ModelCalibration(calibration, symbols)
 end
 
-function set_calibration!(model::Model, key::Symbol, value)
+function set_calibration!(model::ModelSource, key::Symbol, value)
     # TODO: set proper type for ScalarNode
     # this will fail is parameter wasn't defined before
     data = model.data
@@ -292,7 +349,7 @@ function set_calibration!(model::Model, key::Symbol, value)
 
 end
 
-function set_calibration!(model::Model; values...)
+function set_calibration!(model::ModelSource; values...)
     calib = model.data[:calibration]
     data = model.data
     for (k,v) in values
@@ -430,7 +487,7 @@ function get_domain(data, states, calib)::AbstractDomain
 
 end
 
-function get_definitions(model::Model; tshift=0, stringify=false) # ::OrderedDict{Tuple{Symbol,Int}}
+function get_definitions(model::ModelSource; tshift=0, stringify=false) # ::OrderedDict{Tuple{Symbol,Int}}
     
     # return OrderedDict{Tuple{Symbol,Int64},Union{Expr, Number, Symbol}}()
 
@@ -491,7 +548,7 @@ function get_definitions(model::Model; tshift=0, stringify=false) # ::OrderedDic
 end
 
 
-function get_options(model::Model)
+function get_options(model::ModelSource)
     cc = model.calibration.flat
     if "options" in keys(model.data)
         return Dolang.eval_node(model.data["options"], cc, language)
@@ -503,7 +560,7 @@ end
 import Dolang: FunctionFactory
 import Dolang: stringify
 
-function get_factories(model::Model)
+function get_factories(model::ModelSource)
 
     facts = Dict()
     for eq_type in keys(model.data["equations"])
@@ -521,7 +578,7 @@ function get_factories(model::Model)
 
 end
 
-function get_factory(model::Model, eq_type::String)
+function get_factory(model::ModelSource, eq_type::String)
 
     if eq_type == "arbitrage"
         defs_0 = get_definitions(model; stringify=true)
@@ -546,6 +603,8 @@ function get_factory(model::Model, eq_type::String)
             :X => [stringify(e,1) for e in symbols[:controls]],
             :p => [stringify(e) for e in symbols[:parameters]]
             )
+
+            
         
         ff = FunctionFactory(equations, arguments, definitions, Symbol(eq_type))
 
@@ -558,8 +617,8 @@ function get_factory(model::Model, eq_type::String)
                 for i =1:length(eqs)
             )
         arguments_bounds = OrderedDict(
-            :m => [stringify(e,0) for e in symbols[:exogenous]],
-            :s => [stringify(e,0) for e in symbols[:states]],
+            # :m => [stringify(e,0) for e in symbols[:exogenous]],
+            :s => cat(symbols[:exogenous],symbols[:states]; dims=1),
             :p => [stringify(e) for e in symbols[:parameters]]
             )
 
@@ -571,23 +630,25 @@ function get_factory(model::Model, eq_type::String)
 
         return (ff, ff_lb, ff_ub)
            
-    # elseif eq_type=="transition"
-    #     # defs_0  = get_definitions(model; stringify=true)
-    #     defs_m1 = get_definitions(model; tshift=-1, stringify=true)
+    elseif eq_type=="transition"
+        # defs_0  = get_definitions(model; stringify=true)
+        defs_m1 = get_definitions(model; tshift=-1, stringify=true)
 
-    #     definitions = OrderedDict{Symbol, SymExpr}([ (Dolang.stringify(k), v) for (k,v) in  defs_m1 ])
+        definitions = OrderedDict{Symbol, SymExpr}([ (Dolang.stringify(k), v) for (k,v) in  defs_m1 ])
 
-    #     equations = get_assignment_block(model, eq_type)
-    #     symbols = get_symbols(model)
-    #     arguments = OrderedDict(
-    #         :m => [stringify(e,-1) for e in symbols[:exogenous]],
-    #         :s => [stringify(e,-1) for e in symbols[:states]],
-    #         :x => [stringify(e,-1) for e in symbols[:controls]],
-    #         :M => [stringify(e,0) for e in symbols[:exogenous]],
-    #         
-    #     )
-    #     ff = FunctionFactory(equations, arguments, definitions, Symbol(eq_type))
-    #     return ff
+        equations = get_assignment_block(model, eq_type)
+        symbols = get_symbols(model)
+        arguments = OrderedDict(
+            :m => [stringify(e,-1) for e in symbols[:exogenous]],
+            :s => [stringify(e,-1) for e in symbols[:states]],
+            :x => [stringify(e,-1) for e in symbols[:controls]],
+            :M => [stringify(e,0) for e in symbols[:exogenous]],
+            :p => [stringify(e) for e in symbols[:parameters]]
+
+            
+        )
+        ff = FunctionFactory(equations, arguments, definitions, Symbol(eq_type))
+        return ff
     else
         specs = RECIPES[:dtcc][:specs]
         if !(Symbol(eq_type) in keys(specs))
@@ -656,7 +717,7 @@ function get_discretization_options(model::AModel)
 end
 
 
-function discretize(model::Model; kwargs...)
+function discretize(model::ModelSource; kwargs...)
 
     opts = get_discretization_options(model; kwargs...)
     
