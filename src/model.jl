@@ -119,11 +119,8 @@ function create_factories!(model)
 
     factories = get_factories(model)
     idt = id(model)
-
-    println(idt)
         
     model_type = Dolo.YModel{idt}
-    println("Model type: ",model_type)
 
     for (k,fact) in factories
         # code = Dolang.gen_generated_gufun(fact; dispatch=typeof(model))
@@ -146,56 +143,114 @@ function create_factories!(model)
         :params => [Dolang.stringify(e) for e in model.symbols[:parameters]]
     )
     ff = Dolang.FunctionFactory(definitions, args, OrderedDict{Symbol, SymExpr}(), :definitions)
-
-    # code = Dolang.gen_generated_gufun(ff;dispatch=model_type, funname=:evaluate_definitions)
-    code = Dolang.gen_kernel2(ff, 0; dispatch=model_type, funname=:evaluate_definitions)
-    Core.eval(DoloYAML,code)
-
-    
-    # code = quote
-    #     # WARNING: this works only because model calibration is ordered with parameters first
-    #     # transition(model::$model_type, s::SVector, x::SVector, M::SVector) = transition(model, s, x, M, SVector(model.calibration...))
-    #     # arbitrage(model::$model_type, s::SVector, x::SVector, S::SVector, X::SVector) = arbitrage(model, s, x, S, X,  SVector(model.calibration...))
-
-    #     transition(model::$model_type, m::SVector, s::SVector, x::SVector, M::SVector) = transition(model, m, s, x, M, SVector((model.calibration[k] for k=1:$n_p)...))
-    #     arbitrage(model::$model_type, m::SVector, s::SVector, x::SVector, M::SVector, S::SVector, X::SVector) = arbitrage(model, m, s, x, M, S, X, SVector((model.calibration[k] for k=1:$n_p)...))
-    # end
-    # Core.eval(DoloYAML, code)
-
-    # add compatibility
+    # println("Compiling Definitions")
+    # @show ff
+    # code = Dolang.gen_kernel2(ff, 0; dispatch=model_type, funname=:evaluate_definitions)
+    # Core.eval(DoloYAML,code)
 
 
-
-    if model.exogenous isa VAR1
-        println("Specializing VAR1")
-        n_p = length(model.symbols[:parameters])
-        n_x = length(model.symbols[:controls])
-        n_s = length(model.symbols[:states]) + length(model.symbols[:exogenous])
-        n_e = length(model.symbols[:exogenous])
-        code = quote
-            # function transition(model::$model_type, s::SVector, x::SVector, E::SVector) 
-            #     m_,s_ = get_ms(model,s)
-            #     transition(model, m_, s_, x, E)
-            # end       
-            # function transition(model::$model_type, s::SVector{$n_s,T}, x::SVector{$n_x,T}, E::SVector{$n_x,T}) where T
-            function transition(model::$model_type, s::SVector{$n_s}, x::SVector{$n_x}, E::SVector{$n_e})
-                m_,s_ = get_ms(model,s)
-                p = SVector((model.calibration[k] for k=1:$n_p)...)
-                transition(model, m_, s_, x, E, p)
-            end
-
-            function arbitrage(model::$model_type, s::SVector{$n_s}, x::SVector{$n_x}, S::SVector{$n_s}, X::SVector{$n_x})
-                m_,s_ = get_ms(model,s)
-                M_,S_ = get_ms(model,S)
-                p = SVector((model.calibration[k] for k=1:$n_p)...)
-                arbitrage(model, m_, s_, x, M_, S_, X, p)
-            end
-        end
-        println(code)
-        Core.eval(DoloYAML, code)
-
+    # # add compatibility
+    # TODO: replace
+    symbols = get_symbols(model)
+    if (model.exogenous isa DoloYAML.VAR1) | (model.exogenous isa DoloYAML.MarkovChain)
+        symbols[:states] = cat(symbols[:exogenous], symbols[:states]; dims=1)
     end
+
+    n_p = length(symbols[:parameters])
+    n_x = length(symbols[:controls])
+    n_s = length(symbols[:states])
+    n_e = length(symbols[:exogenous])
+
+    code = quote
+
+        function transition(model::$model_type, s::SVector{$n_s}, x::SVector{$n_x}, E::SVector{$n_e})
+            # m_,s_ = get_ms(model,s)
+            p = SVector((model.calibration[k] for k=1:$n_p)...)
+            transition(model, s, x, E, p)
+        end
+
+        function arbitrage(model::$model_type, s::SVector{$n_s}, x::SVector{$n_x}, S::SVector{$n_s}, X::SVector{$n_x})
+            # m_,s_ = get_ms(model,s)
+            # M_,S_ = get_ms(model,S)
+            p = SVector((model.calibration[k] for k=1:$n_p)...)
+            arbitrage(model, s, x, S, X, p)
+        end
+
+        function controls_lb(model::$model_type, s::SVector{$n_s})
+            p = SVector((model.calibration[k] for k=1:$n_p)...)
+            controls_lb(model, s, p)
+        end
+
+        function controls_ub(model::$model_type, s::SVector{$n_s})
+            p = SVector((model.calibration[k] for k=1:$n_p)...)
+            controls_ub(model, s, p)
+        end
+
+        function complementarities(model::$model_type, s_::Dolo.QP, x::SVector{$n_x}, Fv::SVector{$n_x})
+            s_ = s_.val
+            # p = SVector((model.calibration[k] for k=1:$n_p)...)
+            a = controls_lb(model, s_)
+            b = controls_ub(model, s_)
+            r = -( -(Fv .⫫ (x-a)) .⫫ (b-x) )
+            return r
+        end
+    end
+    println(code)
+    Core.eval(DoloYAML, code)
+
+    # end
     
+
+    # if model.exogenous isa MvNormal
+    #     println("Specializing for MvNormal")
+    #     n_p = length(model.symbols[:parameters])
+    #     n_x = length(model.symbols[:controls])
+    #     n_s = length(model.symbols[:states])
+    #     n_e = length(model.symbols[:exogenous])
+    #     code = quote
+            
+    #         function transition(model::$model_type, s::SVector{$n_s}, x::SVector{$n_x}, E::SVector{$n_e})
+    #             p = SVector((model.calibration[k] for k=1:$n_p)...)
+    #             # here we should be allowed to ignore te first appearance of E
+    #             T = getprecision(model)
+    #             __E = zero(SVector{$n_e, T})
+    #             transition(model, s, x, E, p)
+    #         end
+
+    #         function arbitrage(model::$model_type, s::SVector{$n_s}, x::SVector{$n_x}, S::SVector{$n_s}, X::SVector{$n_x})
+    #             # m_,s_ = get_ms(model,s)
+    #             # M_,S_ = get_ms(model,S)
+    #             p = SVector((model.calibration[k] for k=1:$n_p)...)
+    #             # here we should be allowed to ignore `m_` and `M_`
+    #             T = getprecision(model)
+    #             __E = zero(SVector{$n_e, T})
+
+    #             arbitrage(model, s, x, S, X, p)
+    #         end
+
+    #         function controls_lb(model::$model_type, s::SVector{$n_s})
+    #             p = SVector((model.calibration[k] for k=1:$n_p)...)
+    #             controls_lb(model, s, p)
+    #         end
+
+    #         function controls_ub(model::$model_type, s::SVector{$n_s})
+    #             p = SVector((model.calibration[k] for k=1:$n_p)...)
+    #             controls_ub(model, s, p)
+    #         end
+
+    #         function complementarities(model::$model_type, s_::Dolo.QP, x::SVector{$n_x}, Fv::SVector{$n_x})
+    #             s_ = s_.val
+    #             # p = SVector((model.calibration[k] for k=1:$n_p)...)
+    #             a = controls_lb(model, s_)
+    #             b = controls_ub(model, s_)
+    #             r = -( -(Fv .⫫ (x-a)) .⫫ (b-x) )
+    #             return r
+    #         end
+    #     end
+    #     println(code)
+    #     Core.eval(DoloYAML, code)
+
+    # end
 
     factories[:definitions] = ff
 
@@ -580,14 +635,21 @@ end
 
 function get_factory(model::ModelSource, eq_type::String)
 
+
+    # TODO: replace
+    symbols = get_symbols(model)
+    if (model.exogenous isa DoloYAML.VAR1) | (model.exogenous isa DoloYAML.MarkovChain)
+        symbols[:states] = cat(symbols[:exogenous], symbols[:states]; dims=1)
+    end
+
     if eq_type == "arbitrage"
+
         defs_0 = get_definitions(model; stringify=true)
         defs_1 = get_definitions(model; tshift=1, stringify=true)
         definitions = OrderedDict{Symbol, SymExpr}([ (Dolang.stringify(k), v) for (k,v) in merge(defs_0, defs_1)])
 
         eqs, eq_lb, eq_ub = get_equation_block(model, eq_type)
 
-        symbols = get_symbols(model)
 
         #TODO : fix crazy bug: it doesn't work without the trailing underscore !
         equations = OrderedDict{Symbol, Union{Expr, Number, Symbol}}(
@@ -595,10 +657,8 @@ function get_factory(model::ModelSource, eq_type::String)
             for i =1:length(eqs)
         )
         arguments = OrderedDict(
-            :m => [stringify(e,0) for e in symbols[:exogenous]],
             :s => [stringify(e,0) for e in symbols[:states]],
             :x => [stringify(e,0) for e in symbols[:controls]],
-            :M => [stringify(e,1) for e in symbols[:exogenous]],
             :S => [stringify(e,1) for e in symbols[:states]],
             :X => [stringify(e,1) for e in symbols[:controls]],
             :p => [stringify(e) for e in symbols[:parameters]]
@@ -618,9 +678,10 @@ function get_factory(model::ModelSource, eq_type::String)
             )
         arguments_bounds = OrderedDict(
             # :m => [stringify(e,0) for e in symbols[:exogenous]],
-            :s => cat(symbols[:exogenous],symbols[:states]; dims=1),
+            :s => [stringify(e,0) for e in symbols[:states]],
             :p => [stringify(e) for e in symbols[:parameters]]
-            )
+        )
+            @show arguments_bounds
 
         # definitions: we should remove definitions depending on controls
         # definitions = OrderedDict{Symbol, SymExpr}([ (Dolang.stringify(k), v) for (k,v) in defs_0] )
@@ -637,9 +698,8 @@ function get_factory(model::ModelSource, eq_type::String)
         definitions = OrderedDict{Symbol, SymExpr}([ (Dolang.stringify(k), v) for (k,v) in  defs_m1 ])
 
         equations = get_assignment_block(model, eq_type)
-        symbols = get_symbols(model)
+
         arguments = OrderedDict(
-            :m => [stringify(e,-1) for e in symbols[:exogenous]],
             :s => [stringify(e,-1) for e in symbols[:states]],
             :x => [stringify(e,-1) for e in symbols[:controls]],
             :M => [stringify(e,0) for e in symbols[:exogenous]],
@@ -650,7 +710,7 @@ function get_factory(model::ModelSource, eq_type::String)
         ff = FunctionFactory(equations, arguments, definitions, Symbol(eq_type))
         return ff
     else
-        specs = RECIPES[:dtcc][:specs]
+        specs = RECIPES[:dtu][:specs]
         if !(Symbol(eq_type) in keys(specs))
             error("No spec for equation type '$eq_type'")
         end

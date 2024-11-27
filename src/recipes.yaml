@@ -1,47 +1,42 @@
-dtcc:
-    model_spec: dtcc
+dtu:
+    model_spec: dtu
 
     symbols: [exogenous, states, controls, rewards, expectations, values, shocks, parameters]
 
     specs:
         arbitrage:
+
             eqs:
-                - ['exogenous',0,'m']
                 - ['states',0,'s']
                 - ['controls',0,'x']
-
-                - ['exogenous',1,'M']
                 - ['states',1,'S']
                 - ['controls',1,'X']
 
                 - ['parameters',0,'p']
 
             complementarities:
+
                 left-right:
-                    - ['exogenous',0,'m']
                     - ['states', 0, 's']
                     - ['parameters', 0, 'p']
 
-                middle: ['controls', 0, 's']
+                middle: ['controls', 0, 'x']
 
         controls_lb:
             optional: True
             eqs:
-                - ['exogenous',0,'m']
                 - ['states', 0, 's']
                 - ['parameters', 0, 'p']
 
         controls_ub:
             optional: True
             eqs:
-                - ['exogenous',0,'m']
                 - ['states', 0, 's']
                 - ['parameters', 0, 'p']
 
         transition:
             target: ['states',0,'S']
             eqs:
-                - ['exogenous',-1,'m']
                 - ['states',-1,'s']
                 - ['controls',-1,'x']
                 - ['exogenous',0,'M']
@@ -51,12 +46,10 @@ dtcc:
             optional: True
             target: ['values',0,'v']
             eqs:
-                - ['exogenous',0,'m']
                 - ['states',0,'s']
                 - ['controls',0,'x']
                 - ['values', 0, 'v']
 
-                - ['exogenous',1,'M']
                 - ['states',1,'S']
                 - ['controls',1,'X']
                 - ['values', 1, 'V']
@@ -67,7 +60,6 @@ dtcc:
             optional: True
             target: ['expectations',0,'z']
             eqs:
-                - ['exogenous',1,'M']
                 - ['states',1,'S']
                 - ['controls',1,'X']
 
@@ -78,7 +70,6 @@ dtcc:
             target: ['states', 0, 'S']
             recursive: False
             eqs:
-                - ['exogenous', -1, 'm']
                 - ['poststates', -1, 'a']
                 - ['exogenous', 0, 'M']
                 - ['parameters', 0, 'p']
@@ -90,7 +81,6 @@ dtcc:
             target: ['controls', 0,'x']
 
             eqs:
-                - ['exogenous',0,'m']
                 - ['poststates',0,'a']
                 - ['expectations', 0, 'z']
                 - ['parameters',0,'p']
@@ -101,7 +91,6 @@ dtcc:
             recursive: True
             target: ['states', 0, 's']
             eqs:
-                - ['exogenous', 0, 'm']
                 - ['poststates', 0, 'a']
                 - ['controls', 0, 'x']
                 - ['parameters',0,'p']
@@ -113,7 +102,6 @@ dtcc:
             target: ['controls', 0,'x']
 
             eqs:
-                - ['exogenous',0,'m']
                 - ['states',0,'s']
                 - ['expectations', 0, 'z']
                 - ['parameters',0,'p']
@@ -126,270 +114,414 @@ dtcc:
             target: ['rewards', 0,'r']
 
             eqs:
-                - ['exogenous',0,'m']
                 - ['states',0,'s']
                 - ['controls',0,'x']
                 - ['parameters', 0, 'p']
 
 
-        arbitrage_exp:
+        # arbitrage_exp:
+
+        #     optional: True
+
+        #     eqs:
+        #         - ['states',0,'s']
+        #         - ['controls',0,'x']
+        #         - ['parameters', 0, 'p']
+
+
+
+# dtcc:
+#     model_spec: dtcc
+
+#     symbols: [exogenous, states, controls, rewards, expectations, values, shocks, parameters]
+
+#     specs:
+#         arbitrage:
+#             eqs:
+#                 - ['exogenous',0,'m']
+#                 - ['states',0,'s']
+#                 - ['controls',0,'x']
+
+#                 - ['exogenous',1,'M']
+#                 - ['states',1,'S']
+#                 - ['controls',1,'X']
+
+#                 - ['parameters',0,'p']
+
+#             complementarities:
+#                 left-right:
+#                     - ['exogenous',0,'m']
+#                     - ['states', 0, 's']
+#                     - ['parameters', 0, 'p']
+
+#                 middle: ['controls', 0, 's']
+
+#         controls_lb:
+#             optional: True
+#             eqs:
+#                 - ['exogenous',0,'m']
+#                 - ['states', 0, 's']
+#                 - ['parameters', 0, 'p']
+
+#         controls_ub:
+#             optional: True
+#             eqs:
+#                 - ['exogenous',0,'m']
+#                 - ['states', 0, 's']
+#                 - ['parameters', 0, 'p']
+
+#         transition:
+#             target: ['states',0,'S']
+#             eqs:
+#                 - ['exogenous',-1,'m']
+#                 - ['states',-1,'s']
+#                 - ['controls',-1,'x']
+#                 - ['exogenous',0,'M']
+#                 - ['parameters', 0, 'p']
+
+#         value:
+#             optional: True
+#             target: ['values',0,'v']
+#             eqs:
+#                 - ['exogenous',0,'m']
+#                 - ['states',0,'s']
+#                 - ['controls',0,'x']
+#                 - ['values', 0, 'v']
 
-            optional: True
+#                 - ['exogenous',1,'M']
+#                 - ['states',1,'S']
+#                 - ['controls',1,'X']
+#                 - ['values', 1, 'V']
+
+#                 - ['parameters',0,'p']
 
-            eqs:
-                - ['states',0,'s']
-                - ['controls',0,'x']
-                - ['parameters', 0, 'p']
+#         expectation:
+#             optional: True
+#             target: ['expectations',0,'z']
+#             eqs:
+#                 - ['exogenous',1,'M']
+#                 - ['states',1,'S']
+#                 - ['controls',1,'X']
 
-dtcscc:
+#                 - ['parameters',0,'p']
+
+#         half_transition:
+#             optional: True
+#             target: ['states', 0, 'S']
+#             recursive: False
+#             eqs:
+#                 - ['exogenous', -1, 'm']
+#                 - ['poststates', -1, 'a']
+#                 - ['exogenous', 0, 'M']
+#                 - ['parameters', 0, 'p']
 
-    model_spec: dtcscc
+#         direct_response_egm:
 
-    symbols: ['states', 'controls', 'rewards', 'expectations', 'values', 'shocks', 'parameters']
+#             optional: True
+#             recursive: True
+#             target: ['controls', 0,'x']
 
-    specs:
+#             eqs:
+#                 - ['exogenous',0,'m']
+#                 - ['poststates',0,'a']
+#                 - ['expectations', 0, 'z']
+#                 - ['parameters',0,'p']
 
-        arbitrage:
+#         reverse_state:
 
-            eqs:
-                - ['states',0,'s']
-                - ['controls',0,'x']
-                - ['shocks', 1, 'E']
-                - ['states',1,'S']
-                - ['controls',1,'X']
-                - ['parameters',0,'p']
+#             optional: True
+#             recursive: True
+#             target: ['states', 0, 's']
+#             eqs:
+#                 - ['exogenous', 0, 'm']
+#                 - ['poststates', 0, 'a']
+#                 - ['controls', 0, 'x']
+#                 - ['parameters',0,'p']
 
-            complementarities:
+#         direct_response:
 
-                left-right:
-                    - ['states', 0, 's']
-                    - ['parameters', 0, 'p']
+#             optional: True
+#             recursive: True
+#             target: ['controls', 0,'x']
 
-                middle: ['controls', 0, 's']
+#             eqs:
+#                 - ['exogenous',0,'m']
+#                 - ['states',0,'s']
+#                 - ['expectations', 0, 'z']
+#                 - ['parameters',0,'p']
 
-        controls_lb:
-            optional: True
-            eqs:
-                - ['states', 0, 's']
-                - ['parameters', 0, 'p']
+#         felicity:
 
-        controls_ub:
-            optional: True
-            eqs:
-                - ['states', 0, 's']
-                - ['parameters', 0, 'p']
+#             optional: True
+#             recursive: True
 
-        transition:
+#             target: ['rewards', 0,'r']
 
-            target: ['states',0,'S']
+#             eqs:
+#                 - ['exogenous',0,'m']
+#                 - ['states',0,'s']
+#                 - ['controls',0,'x']
+#                 - ['parameters', 0, 'p']
 
-            eqs:
-                - ['states',-1,'s']
-                - ['controls',-1,'x']
-                - ['shocks',0,'e']
-                - ['parameters', 0, 'p']
 
-        value:
+#         arbitrage_exp:
 
-            optional: True
+#             optional: True
 
-            target: ['values',0,'v']
+#             eqs:
+#                 - ['states',0,'s']
+#                 - ['controls',0,'x']
+#                 - ['parameters', 0, 'p']
 
-            eqs:
-                - ['states',0,'s']
-                - ['controls',0,'x']
-                - ['states',1,'S']
-                - ['controls',1,'X']
-                - ['values',1,'V']
-                - ['parameters', 0, 'p']
+# dtcscc:
 
-        expectation:
+#     model_spec: dtcscc
 
-            optional: True
+#     symbols: ['states', 'controls', 'rewards', 'expectations', 'values', 'shocks', 'parameters']
 
-            target: ['expectations',0,'z']
-            recursive: False
+#     specs:
 
-            eqs:
-                - ['states',1,'S']
-                - ['controls',1,'X']
-                - ['parameters',0,'p']
+#         arbitrage:
 
-        direct_response:
+#             eqs:
+#                 - ['states',0,'s']
+#                 - ['controls',0,'x']
+#                 - ['shocks', 1, 'E']
+#                 - ['states',1,'S']
+#                 - ['controls',1,'X']
+#                 - ['parameters',0,'p']
 
-            optional: True
-            recursive: True
-            target: ['controls', 0,'x']
+#             complementarities:
 
-            eqs:
-                - ['states',0,'s']
-                - ['expectations', 0, 'z']
-                - ['parameters',0,'p']
+#                 left-right:
+#                     - ['states', 0, 's']
+#                     - ['parameters', 0, 'p']
 
-        felicity:
+#                 middle: ['controls', 0, 's']
 
-            optional: True
-            recursive: True
-            target: ['rewards', 0, 'r']
+#         controls_lb:
+#             optional: True
+#             eqs:
+#                 - ['states', 0, 's']
+#                 - ['parameters', 0, 'p']
 
-            eqs:
-                - ['states',0,'s']
-                - ['controls',0,'x']
-                - ['parameters',0,'p']
+#         controls_ub:
+#             optional: True
+#             eqs:
+#                 - ['states', 0, 's']
+#                 - ['parameters', 0, 'p']
 
+#         transition:
 
-        arbitrage_exp:
+#             target: ['states',0,'S']
 
-            optional: True
+#             eqs:
+#                 - ['states',-1,'s']
+#                 - ['controls',-1,'x']
+#                 - ['shocks',0,'e']
+#                 - ['parameters', 0, 'p']
 
-            eqs:
-                - ['states',0,'s']
-                - ['controls',0,'x']
-                - ['expectations', 0, 'z']
-                #- ['auxiliaries',0,'y']
-                - ['parameters', 0, 'p']
+#         value:
 
-dtmscc:
+#             optional: True
 
-    model_spec: dtmscc
+#             target: ['values',0,'v']
 
-    symbols: ['markov_states', 'states', 'controls', 'rewards', 'values', 'expectations', 'shocks', 'parameters']
+#             eqs:
+#                 - ['states',0,'s']
+#                 - ['controls',0,'x']
+#                 - ['states',1,'S']
+#                 - ['controls',1,'X']
+#                 - ['values',1,'V']
+#                 - ['parameters', 0, 'p']
 
-    specs:
+#         expectation:
 
-        arbitrage:
+#             optional: True
 
-            eqs:
+#             target: ['expectations',0,'z']
+#             recursive: False
 
-                - ['markov_states',0,'m']
-                - ['states',0,'s']
-                - ['controls',0,'x']
+#             eqs:
+#                 - ['states',1,'S']
+#                 - ['controls',1,'X']
+#                 - ['parameters',0,'p']
 
-                - ['markov_states',1,'M']
-                - ['states',1,'S']
-                - ['controls',1,'X']
+#         direct_response:
 
-                - ['parameters',0,'p']
+#             optional: True
+#             recursive: True
+#             target: ['controls', 0,'x']
 
-            complementarities:
+#             eqs:
+#                 - ['states',0,'s']
+#                 - ['expectations', 0, 'z']
+#                 - ['parameters',0,'p']
 
-                left-right:
+#         felicity:
 
-                    - ['markov_states',0,'m']
-                    - ['states', 0, 's']
-                    - ['parameters', 0, 'p']
+#             optional: True
+#             recursive: True
+#             target: ['rewards', 0, 'r']
 
-                middle: ['controls', 0, 's']
+#             eqs:
+#                 - ['states',0,'s']
+#                 - ['controls',0,'x']
+#                 - ['parameters',0,'p']
 
-        controls_lb:
-            optional: True
-            eqs:
-                - ['markov_states',0,'m']
-                - ['states', 0, 's']
-                - ['parameters', 0, 'p']
 
-        controls_ub:
-            optional: True
-            eqs:
-                - ['markov_states',0,'m']
-                - ['states', 0, 's']
-                - ['parameters', 0, 'p']
+#         arbitrage_exp:
 
-        transition:
+#             optional: True
 
-            target: ['states',0,'S']
+#             eqs:
+#                 - ['states',0,'s']
+#                 - ['controls',0,'x']
+#                 - ['expectations', 0, 'z']
+#                 #- ['auxiliaries',0,'y']
+#                 - ['parameters', 0, 'p']
 
-            eqs:
-                - ['markov_states',-1,'m']
-                - ['states',-1,'s']
-                - ['controls',-1,'x']
-                - ['markov_states',0,'M']
-                - ['parameters', 0, 'p']
+# dtmscc:
 
-        value:
+#     model_spec: dtmscc
 
-            optional: True
+#     symbols: ['markov_states', 'states', 'controls', 'rewards', 'values', 'expectations', 'shocks', 'parameters']
 
-            target: ['values',0,'v']
-            recursive: False
+#     specs:
 
-            eqs:
-                - ['markov_states',0,'m']
-                - ['states',0,'s']
-                - ['controls',0,'x']
-                - ['values', 0, 'v']
+#         arbitrage:
 
-                - ['markov_states',1,'M']
-                - ['states',1,'S']
-                - ['controls',1,'X']
-                - ['values', 1, 'V']
+#             eqs:
 
-                - ['parameters',0,'p']
+#                 - ['markov_states',0,'m']
+#                 - ['states',0,'s']
+#                 - ['controls',0,'x']
 
-        expectation:
+#                 - ['markov_states',1,'M']
+#                 - ['states',1,'S']
+#                 - ['controls',1,'X']
 
-            optional: True
+#                 - ['parameters',0,'p']
 
-            target: ['expectations',0,'z']
-            recursive: False
+#             complementarities:
 
-            eqs:
-                - ['markov_states',1,'M']
-                - ['states',1,'S']
-                - ['controls',1,'X']
+#                 left-right:
 
-                - ['parameters',0,'p']
+#                     - ['markov_states',0,'m']
+#                     - ['states', 0, 's']
+#                     - ['parameters', 0, 'p']
 
-        direct_response:
+#                 middle: ['controls', 0, 's']
 
-            optional: True
-            recursive: True
-            target: ['controls', 0,'x']
+#         controls_lb:
+#             optional: True
+#             eqs:
+#                 - ['markov_states',0,'m']
+#                 - ['states', 0, 's']
+#                 - ['parameters', 0, 'p']
 
-            eqs:
-                - ['markov_states',0,'m']
-                - ['states',0,'s']
-                - ['expectations', 0, 'z']
-                - ['parameters',0,'p']
+#         controls_ub:
+#             optional: True
+#             eqs:
+#                 - ['markov_states',0,'m']
+#                 - ['states', 0, 's']
+#                 - ['parameters', 0, 'p']
 
-        felicity:
+#         transition:
 
-            optional: True
-            recursive: True
+#             target: ['states',0,'S']
 
-            target: ['rewards', 0,'r']
+#             eqs:
+#                 - ['markov_states',-1,'m']
+#                 - ['states',-1,'s']
+#                 - ['controls',-1,'x']
+#                 - ['markov_states',0,'M']
+#                 - ['parameters', 0, 'p']
 
-            eqs:
-                - ['markov_states',0,'m']
-                - ['states',0,'s']
-                - ['controls',0,'x']
-                - ['parameters', 0, 'p']
+#         value:
 
+#             optional: True
 
-        arbitrage_exp:
+#             target: ['values',0,'v']
+#             recursive: False
 
-            optional: True
+#             eqs:
+#                 - ['markov_states',0,'m']
+#                 - ['states',0,'s']
+#                 - ['controls',0,'x']
+#                 - ['values', 0, 'v']
 
-            eqs:
-                - ['states',0,'s']
-                - ['controls',0,'x']
-                #- ['auxiliaries',0,'y']
-                - ['parameters', 0, 'p']
+#                 - ['markov_states',1,'M']
+#                 - ['states',1,'S']
+#                 - ['controls',1,'X']
+#                 - ['values', 1, 'V']
 
-dynare:
+#                 - ['parameters',0,'p']
 
-    model_spec: dynare
+#         expectation:
 
-    symbols: ['variables', 'shocks', 'parameters']
+#             optional: True
 
-    specs:
+#             target: ['expectations',0,'z']
+#             recursive: False
 
-        dynare:
+#             eqs:
+#                 - ['markov_states',1,'M']
+#                 - ['states',1,'S']
+#                 - ['controls',1,'X']
 
-            eqs:
+#                 - ['parameters',0,'p']
 
-                - ['variables',1,'y_p1']
-                - ['variables',0,'y']
-                - ['variables',-1,'y_m1']
-                - ['shocks', 0, 'e']
-                - ['parameters',0,'p']
+#         direct_response:
+
+#             optional: True
+#             recursive: True
+#             target: ['controls', 0,'x']
+
+#             eqs:
+#                 - ['markov_states',0,'m']
+#                 - ['states',0,'s']
+#                 - ['expectations', 0, 'z']
+#                 - ['parameters',0,'p']
+
+#         felicity:
+
+#             optional: True
+#             recursive: True
+
+#             target: ['rewards', 0,'r']
+
+#             eqs:
+#                 - ['markov_states',0,'m']
+#                 - ['states',0,'s']
+#                 - ['controls',0,'x']
+#                 - ['parameters', 0, 'p']
+
+
+#         arbitrage_exp:
+
+#             optional: True
+
+#             eqs:
+#                 - ['states',0,'s']
+#                 - ['controls',0,'x']
+#                 #- ['auxiliaries',0,'y']
+#                 - ['parameters', 0, 'p']
+
+# dynare:
+
+#     model_spec: dynare
+
+#     symbols: ['variables', 'shocks', 'parameters']
+
+#     specs:
+
+#         dynare:
+
+#             eqs:
+
+#                 - ['variables',1,'y_p1']
+#                 - ['variables',0,'y']
+#                 - ['variables',-1,'y_m1']
+#                 - ['shocks', 0, 'e']
+#                 - ['parameters',0,'p']

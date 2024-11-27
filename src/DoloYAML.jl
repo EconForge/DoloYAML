@@ -3,6 +3,7 @@ module DoloYAML
 
     import Dolo
     import Dolo: getprecision
+    import Dolo: ⫫
 
 using Printf
 
@@ -37,7 +38,7 @@ import Base.*
 using Format
 using LinearAlgebra
 
-import Dolo: transition, arbitrage, controls_lb, controls_ub
+import Dolo: transition, arbitrage, controls_lb, controls_ub, complementarities
 
 # abstract type AbstractModel{ID, ExoT} end
 
