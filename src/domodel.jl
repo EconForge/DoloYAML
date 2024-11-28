@@ -1,6 +1,3 @@
-using StaticArrays
-using Dolo: YModel    
-
 function DoloModel(filename::AbstractString)
     source = yaml_import_old(filename)
     DoloModel(source)
@@ -18,57 +15,52 @@ function DoloModel(source)
 
     calibration = merge(p, m, s, x)
 
-    if typeof(source.exogenous) <: DiscreteMarkovProcess
+    # if typeof(source.exogenous) <: MarkovChain
 
-        p1,q1=size(source.exogenous.values)
-        p2,q2=size(source.exogenous.transitions)
+    #     (;states, min, max) = source.domain.endo
 
-        Q = SMatrix{p1,q1}(source.exogenous.values)
-        points = SVector( tuple((Q[i,:] for i=1:size(Q,1))...) )
+    #     aargs = (states[i]=>(min[i],max[i]) for i in eachindex(states))
+    #     cspace = Dolo.CartesianSpace(; aargs... )
+    #     exo_vars = tuple(source.symbols[:exogenous]...)
+    #     states = get_domain(source.exogenous) × cspace
+    #     exogenous = source.exogenous
 
-        P = SMatrix{p2,q2}(source.exogenous.transitions)
+    # elseif typeof(source.exogenous) <: MvNormal
 
-        (;states, min, max) = source.domain.endo
+    #     (;states, min, max) =  source.domain.endo
+    #     aargs = (states[i]=>(min[i],max[i]) for i in eachindex(states))
+    #     states = Dolo.CartesianSpace(; aargs... )
+    #     exo_vars = tuple(source.symbols[:exogenous]...)
+    #     exogenous = Dolo.MvNormal(exo_vars, source.exogenous.μ, source.exogenous.Σ)
+    #     # exogenous = Dolo.MvNormal(source.exogenous.μ, source.exogenous.Σ) # TODO
 
-        aargs = (states[i]=>(min[i],max[i]) for i in eachindex(states))
-        cspace = Dolo.CartesianSpace(; aargs... )
-        exo_vars = tuple(source.symbols[:exogenous]...)
-        states = Dolo.GridSpace(exo_vars, points  ) × cspace
-        exogenous = Dolo.MarkovChain(exo_vars, P, points)
-
-    elseif typeof(source.exogenous) <: MvNormal
-
-        (;states, min, max) = source.domain.endo
-        aargs = (states[i]=>(min[i],max[i]) for i in eachindex(states))
-        states = Dolo.CartesianSpace(; aargs... )
-        exo_vars = tuple(source.symbols[:exogenous]...)
-        exogenous = Dolo.MvNormal(exo_vars, source.exogenous.μ, source.exogenous.Σ)
-        # exogenous = Dolo.MvNormal(source.exogenous.μ, source.exogenous.Σ) # TODO
-
-    elseif typeof(source.exogenous) <: VAR1
+    # elseif typeof(source.exogenous) <: VAR1
         
-        exo_vars = tuple(source.symbols[:exogenous]...)
-        # TODO: assert R diag(r)
-        ρ = source.exogenous.R[1,1]
-        Σ = source.exogenous.Σ
-        p = size(Σ,1)
+    #     exo_vars = tuple(source.symbols[:exogenous]...)
+    #     # TODO: assert R diag(r)
+    #     # ρ = source.exogenous.ρ
+    #     Σ = source.exogenous.Σ
+    #     p = size(Σ,1)
 
 
-        (;states, min, max) = source.domain.endo
+    #     (;states, min, max) = source.domain.endo
 
-        aargs = (states[i]=>(min[i],max[i]) for i in eachindex(states))
-        cspace = Dolo.CartesianSpace(aargs... )
-        exo_vars = tuple(source.symbols[:exogenous]...)
-        keys =  (k=>(-Inf,Inf) for k in exo_vars )
-        exo_domain = Dolo.CartesianSpace(keys... )
+    #     aargs = (states[i]=>(min[i],max[i]) for i in eachindex(states))
+    #     cspace = Dolo.CartesianSpace(aargs... )
 
-        min = tuple(exo_domain.min..., cspace.min...)
-        max = tuple(exo_domain.max..., cspace.max...)
-        names = tuple(Dolo.variables(exo_domain)..., Dolo.variables(cspace)...)
-        states = Dolo.CartesianSpace(; ( n=>(a,b) for (n,a,b) in zip(names, min, max))... )
-        exogenous = Dolo.VAR1(exo_vars, ρ, SMatrix{p,p,Float64,p*p}(Σ))
+    #     exo_domain = get_domain(source.exogenous)
 
-    end
+    #     min = tuple(exo_domain.min..., cspace.min...)
+    #     max = tuple(exo_domain.max..., cspace.max...)
+    #     names = tuple(Dolo.variables(exo_domain)..., Dolo.variables(cspace)...)
+        
+    #     states = Dolo.CartesianSpace(; ( n=>(a,b) for (n,a,b) in zip(names, min, max))... )
+    #     exogenous = source.exogenous
+
+    # end
+
+    states = source.domain
+    exogenous = source.exogenous
 
     controls = Dolo.CartesianSpace(
         (k=>(-Inf, Inf) for k in source.symbols[:controls])...

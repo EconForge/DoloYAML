@@ -3,11 +3,6 @@ function orphan(model::ModelSource{ID, Dom}) where ID where Dom
     DummyModel{ID, Dom, P}(model.parameters)
 end
 
-
-
-
-
-
 function orphan(model::Dolo.YModel)
     Dolo.YModel(
         Dolo.name(model),
@@ -18,7 +13,6 @@ function orphan(model::Dolo.YModel)
         orphan(model.source)
     )
 end
-
 
 function orphan(model::Dolo.DYModel)
     Dolo.DYModel(

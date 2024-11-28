@@ -75,8 +75,8 @@ domain:
     k: [k*0.9, k*1.1]
 
 exogenous: 
-    e_z: !Normal
-        Σ: sig_z^2
+    e_z: !UNormal
+        σ: sig_z
 
 options:
     discretization:

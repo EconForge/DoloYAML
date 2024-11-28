@@ -42,7 +42,6 @@ exogenous:
     y: !UNormal
         sigma: σ
 
-
 # options:
 #     discretization:
 #         endo:

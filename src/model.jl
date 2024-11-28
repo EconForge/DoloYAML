@@ -1,21 +1,3 @@
-using Dolang: sanitize
-using Dolang: Tree, Token
-
-# using Dolo: ModelCalibration
-import Dolang: solve_triangular_system
-
-import YAML
-import Dolang
-import Dolang: yaml_node_from_string, yaml_node_from_file
-using Dolang: SymExpr
-import Dolang: LTree
-import Dolang
-
-
-using DataStructures: OrderedDict
-
-
-
 # defind language understood in yaml files
 language = minilang
 
@@ -91,7 +73,11 @@ function ModelSource(data::YAML.Node, filename)
     endo_domain = get_domain(data, symbols[:states], calibration.flat)
     exo_domain = get_domain(exogenous)
     
-    domain = ProductDomain(exo_domain, endo_domain)
+    if exogenous isa MvNormal
+        domain = endo_domain
+    else
+        domain = ProductSpace(exo_domain, endo_domain)
+    end
 
     dom_typ = typeof(domain)
 
@@ -103,7 +89,7 @@ function ModelSource(data::YAML.Node, filename)
         calibration,
         p,
         exogenous,
-        domain,
+        domain,  ### how is this computed?
         nothing,
         nothing,
         filename
@@ -126,7 +112,6 @@ function create_factories!(model)
         # code = Dolang.gen_generated_gufun(fact; dispatch=typeof(model))
         # code = Dolang.gen_generated_gufun(fact; dispatch=model_type)
         code = Dolang.gen_kernel2(fact, 0; dispatch=model_type)
-        println(code)
         # print_code && println("equation '", eq_type, "'", code)
         Core.eval(DoloYAML, code)
     end
@@ -195,7 +180,6 @@ function create_factories!(model)
             return r
         end
     end
-    println(code)
     Core.eval(DoloYAML, code)
 
     # end
@@ -344,12 +328,14 @@ function get_exogenous(data, exosyms, fcalib)
         msg = string("In 'exogenous' section, shocks must be declared in the same order as shock symbol. Found: ", syms, ". Expected: ", expected, ".")
         throw(ErrorException(msg))
     end
-    processes = []
-    for k in keys(exo_dict)
-        v = exo_dict[k]
-        p = Dolang.eval_node(v, calibration, minilang, ToGreek())
-        push!(processes, p)
-    end
+    # processes = []
+    # for k in keys(exo_dict)
+    #     v = exo_dict[k]
+    #     p = Dolang.eval_node(v, calibration, minilang, ToGreek())
+    #     push!(processes, p)
+    # end
+    processes = Dolang.eval_node_with_keys(exo_dict, calibration, minilang, ToGreek())
+    
     if length(processes) > 1
         return ProductProcess(Tuple(processes))
     else 
@@ -513,7 +499,7 @@ function get_domain(model::AModel)::AbstractDomain
     return get_domain(data, states, fcalib)
 end
 
-function get_domain(data, states, calib)::AbstractDomain
+function get_domain(data, states, calib)
 
     if !("domain" in keys(data))
         return EmptyDomain(states)
@@ -521,24 +507,13 @@ function get_domain(data, states, calib)::AbstractDomain
 
     domain = data["domain"]
     
-    kk = keys(domain)
-    if "min" in kk
-        # TODO: deprecation warning
-        min = [Dolang.eval_node(domain[(k)][1], calib) for k in states]
-        max = [Dolang.eval_node(domain[(k)][2], calib) for k in states]
-        return CartesianDomain(states, min, max)
-
-    else
-        kk = tuple([Symbol(k) for k in keys(domain)]...)
-        ss = tuple(states...)
-        if kk != ss
-            error("The declaration order in the domain section ($kk) must match the symbols orders ($ss)")
-        end
-        vals = [Dolang.eval_node(domain[k], calib) for k in kk]
-        min = [e[1] for e in vals]
-        max = [e[2] for e in vals]
-        return CartesianDomain(states, min, max)
+    kk = tuple([Symbol(k) for k in keys(domain)]...)
+    ss = tuple(states...)
+    if kk != ss
+        error("The declaration order in the domain section ($kk) must match the symbols orders ($ss)")
     end
+    vals = [Dolang.eval_node(domain[k], calib) for k in kk]
+    return CartesianSpace(;(k=>tuple(v...) for (k,v) in zip(states,vals))...)
 
 end
 
@@ -681,7 +656,6 @@ function get_factory(model::ModelSource, eq_type::String)
             :s => [stringify(e,0) for e in symbols[:states]],
             :p => [stringify(e) for e in symbols[:parameters]]
         )
-            @show arguments_bounds
 
         # definitions: we should remove definitions depending on controls
         # definitions = OrderedDict{Symbol, SymExpr}([ (Dolang.stringify(k), v) for (k,v) in defs_0] )

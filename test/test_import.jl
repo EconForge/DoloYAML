@@ -1,4 +1,5 @@
 using DoloYAML
+import Dolo
 
 @testset "Testing yaml_import" begin
     path = joinpath(DoloYAML.pkg_path, "examples")
@@ -6,5 +7,9 @@ using DoloYAML
     for fname in files
         println("Importing ", fname)
         model = DoloYAML.yaml_import(joinpath(path, fname))
+        mmodel = DoloYAML.orphan(model)
+        @assert isbits(mmodel)
+        dmodel = Dolo.discretize(model)
+        # sol = Dolo.time_iteration(model);
     end
 end
