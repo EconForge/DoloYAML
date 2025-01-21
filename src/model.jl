@@ -113,6 +113,7 @@ function create_factories!(model)
         # code = Dolang.gen_generated_gufun(fact; dispatch=model_type)
         code = Dolang.gen_kernel2(fact, 0; dispatch=model_type)
         # print_code && println("equation '", eq_type, "'", code)
+        println(code)
         Core.eval(DoloYAML, code)
     end
 
@@ -180,6 +181,8 @@ function create_factories!(model)
             return r
         end
     end
+
+    println(code)
     Core.eval(DoloYAML, code)
 
     # end

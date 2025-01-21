@@ -81,6 +81,7 @@ module DoloYAML
     add_language_elements!(minilang, Dict(
         "!Normal"=>UNormal,
         "!UNormal"=>UNormal,
+        "!MvNormal"=>MvNormal,
         "!MarkovChain"=>MarkovChain,
         "!VAR1"=>VAR1,
         # "!Product"=>Product,
