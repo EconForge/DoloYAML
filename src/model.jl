@@ -108,14 +108,7 @@ function create_factories!(model)
         
     model_type = Dolo.YModel{idt}
 
-    for (k,fact) in factories
-        # code = Dolang.gen_generated_gufun(fact; dispatch=typeof(model))
-        # code = Dolang.gen_generated_gufun(fact; dispatch=model_type)
-        code = Dolang.gen_kernel2(fact, 0; dispatch=model_type)
-        # print_code && println("equation '", eq_type, "'", code)
-        println(code)
-        Core.eval(DoloYAML, code)
-    end
+
 
     # Create definitions
     defs = get_definitions(model; stringify=true)
@@ -129,11 +122,6 @@ function create_factories!(model)
         :params => [Dolang.stringify(e) for e in model.symbols[:parameters]]
     )
     ff = Dolang.FunctionFactory(definitions, args, OrderedDict{Symbol, SymExpr}(), :definitions)
-    # println("Compiling Definitions")
-    # @show ff
-    # code = Dolang.gen_kernel2(ff, 0; dispatch=model_type, funname=:evaluate_definitions)
-    # Core.eval(DoloYAML,code)
-
 
     # # add compatibility
     # TODO: replace
@@ -174,7 +162,6 @@ function create_factories!(model)
 
         function complementarities(model::$model_type, s_::Dolo.QP, x::SVector{$n_x}, Fv::SVector{$n_x})
             s_ = s_.val
-            # p = SVector((model.calibration[k] for k=1:$n_p)...)
             a = controls_lb(model, s_)
             b = controls_ub(model, s_)
             r = -( -(Fv .⫫ (x-a)) .⫫ (b-x) )
@@ -185,59 +172,14 @@ function create_factories!(model)
     println(code)
     Core.eval(DoloYAML, code)
 
-    # end
-    
-
-    # if model.exogenous isa MvNormal
-    #     println("Specializing for MvNormal")
-    #     n_p = length(model.symbols[:parameters])
-    #     n_x = length(model.symbols[:controls])
-    #     n_s = length(model.symbols[:states])
-    #     n_e = length(model.symbols[:exogenous])
-    #     code = quote
-            
-    #         function transition(model::$model_type, s::SVector{$n_s}, x::SVector{$n_x}, E::SVector{$n_e})
-    #             p = SVector((model.calibration[k] for k=1:$n_p)...)
-    #             # here we should be allowed to ignore te first appearance of E
-    #             T = getprecision(model)
-    #             __E = zero(SVector{$n_e, T})
-    #             transition(model, s, x, E, p)
-    #         end
-
-    #         function arbitrage(model::$model_type, s::SVector{$n_s}, x::SVector{$n_x}, S::SVector{$n_s}, X::SVector{$n_x})
-    #             # m_,s_ = get_ms(model,s)
-    #             # M_,S_ = get_ms(model,S)
-    #             p = SVector((model.calibration[k] for k=1:$n_p)...)
-    #             # here we should be allowed to ignore `m_` and `M_`
-    #             T = getprecision(model)
-    #             __E = zero(SVector{$n_e, T})
-
-    #             arbitrage(model, s, x, S, X, p)
-    #         end
-
-    #         function controls_lb(model::$model_type, s::SVector{$n_s})
-    #             p = SVector((model.calibration[k] for k=1:$n_p)...)
-    #             controls_lb(model, s, p)
-    #         end
-
-    #         function controls_ub(model::$model_type, s::SVector{$n_s})
-    #             p = SVector((model.calibration[k] for k=1:$n_p)...)
-    #             controls_ub(model, s, p)
-    #         end
-
-    #         function complementarities(model::$model_type, s_::Dolo.QP, x::SVector{$n_x}, Fv::SVector{$n_x})
-    #             s_ = s_.val
-    #             # p = SVector((model.calibration[k] for k=1:$n_p)...)
-    #             a = controls_lb(model, s_)
-    #             b = controls_ub(model, s_)
-    #             r = -( -(Fv .⫫ (x-a)) .⫫ (b-x) )
-    #             return r
-    #         end
-    #     end
-    #     println(code)
-    #     Core.eval(DoloYAML, code)
-
-    # end
+    for (k,fact) in factories
+        # code = Dolang.gen_generated_gufun(fact; dispatch=typeof(model))
+        # code = Dolang.gen_generated_gufun(fact; dispatch=model_type)
+        code = Dolang.gen_kernel2(fact, 0; dispatch=model_type)
+        # print_code && println("equation '", eq_type, "'", code)
+        println(code)
+        Core.eval(DoloYAML, code)
+    end
 
     factories[:definitions] = ff
 
